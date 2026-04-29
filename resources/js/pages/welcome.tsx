@@ -258,10 +258,10 @@ export default function Welcome({
                                         <img
                                             src={images.torPreview}
                                             alt="TOR preview"
-                                            className="h-96 w-full rounded-sm sm:h-80"
+                                            className="h-64 w-full rounded-sm object-cover sm:h-80 md:h-96 lg:h-[30rem]"
                                         />
                                     ) : (
-                                        <div className="flex h-72 w-full flex-col items-center justify-center rounded-sm border border-dashed border-[#d0c3b5] bg-white text-center text-xs text-[#7c6f63] sm:h-80">
+                                        <div className="flex h-64 w-full flex-col items-center justify-center rounded-sm border border-dashed border-[#d0c3b5] bg-white text-center text-xs text-[#7c6f63] sm:h-80 md:h-96 lg:h-[36rem]">
                                             <span className="font-semibold">
                                                 TOR Preview Placeholder
                                             </span>
