@@ -71,7 +71,7 @@ class WelcomePageContent extends Model
                 'steps' => [
                     [
                         'title' => 'Upload TOR',
-                        'description' => 'Registrar staff captures or upload a scanned or photographed TOR directly into the system. No student interaction required.',
+                        'description' => 'Registrar staff captures or uploads a scanned or photographed TOR directly into the system. No student interaction required.',
                     ],
                     [
                         'title' => 'Deep Learning Model Analysis',

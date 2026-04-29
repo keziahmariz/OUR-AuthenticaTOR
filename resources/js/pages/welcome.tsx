@@ -36,7 +36,7 @@ const fallbackContent: WelcomePageContent = {
             {
                 title: 'Upload TOR',
                 description:
-                    'Registrar staff captures or upload a scanned or photographed TOR directly into the system. No student interaction required.',
+                    'Registrar staff captures or uploads a scanned or photographed TOR directly into the system. No student interaction required.',
             },
             {
                 title: 'Deep Learning Model Analysis',
@@ -286,8 +286,8 @@ export default function Welcome({
 
                 <section className="bg-white py-12 text-center">
                     <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 sm:px-6 md:grid-cols-3">
-                        {metricItems.map((item) => (
-                            <div key={item.label}>
+                        {metricItems.map((item, idx) => (
+                            <div key={`metric-${idx}`}>
                                 <p className="font-['Source_Code_Pro',monospace] text-5xl font-bold text-[#9a0000] sm:text-6xl">
                                     {item.value}
                                 </p>
@@ -319,7 +319,7 @@ export default function Welcome({
 
                                 return (
                                     <article
-                                        key={`about-step-${step.title}`}
+                                        key={`about-step-${index}`}
                                         className="rounded-xl border border-[#d8d0c9] bg-white p-5"
                                     >
                                         <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg border border-[#ecdcdc] bg-[#f5eaea] text-[#9a0000]">
@@ -353,9 +353,9 @@ export default function Welcome({
                         </div>
 
                         <div className="mt-8 grid gap-4 md:grid-cols-2">
-                            {content.thesis.cards.map((card) => (
+                            {content.thesis.cards.map((card, idx) => (
                                 <article
-                                    key={`thesis-card-${card.label}`}
+                                    key={`thesis-card-${idx}`}
                                     className="rounded-xl border border-[#902727] bg-[#9a000066] p-5"
                                 >
                                     <p className="text-xs font-semibold tracking-[0.12em] text-[#c49d00]">
