@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\WelcomeContentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -19,6 +20,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('settings/password', [SecurityController::class, 'update'])
         ->middleware('throttle:6,1')
         ->name('user-password.update');
+
+    Route::get('settings/welcome-content', [WelcomeContentController::class, 'edit'])
+        ->can('manageWelcomeContent')
+        ->name('welcome-content.edit');
+
+    Route::patch('settings/welcome-content', [WelcomeContentController::class, 'update'])
+        ->can('manageWelcomeContent')
+        ->name('welcome-content.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
 });
