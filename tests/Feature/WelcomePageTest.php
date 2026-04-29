@@ -1,10 +1,7 @@
 <?php
 
 use App\Models\WelcomePageContent;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
-
-uses(RefreshDatabase::class);
 
 test('welcome page is displayed', function () {
     $this->withoutVite();

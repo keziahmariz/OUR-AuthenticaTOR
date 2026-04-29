@@ -2,12 +2,9 @@
 
 use App\Models\User;
 use App\Models\WelcomePageContent;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
-
-uses(RefreshDatabase::class);
 
 test('non admin users cannot access welcome content settings', function () {
     $this->withoutVite();
@@ -54,7 +51,7 @@ test('admin users can update welcome content and upload images', function () {
     $this->actingAs($admin)
         ->patch(route('welcome-content.update'), [
             'content' => $payload,
-            'logo_image' => UploadedFile::fake()->create('logo.svg', 10, 'image/svg+xml'),
+            'logo_image' => UploadedFile::fake()->image('logo.jpg'),
             'hero_background_image' => UploadedFile::fake()->image('hero.jpg'),
             'tor_preview_image' => UploadedFile::fake()->image('tor.png'),
         ])
