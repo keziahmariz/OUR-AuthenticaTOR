@@ -22,13 +22,13 @@ class WelcomePageController extends Controller
             'content' => WelcomePageContent::mergeContent($welcomeContent?->content),
             'images' => [
                 'logo' => $welcomeContent?->logo_image_path
-                    ? Storage::url($welcomeContent->logo_image_path)
+                    ? Storage::disk('public')->url($welcomeContent->logo_image_path)
                     : null,
                 'heroBackground' => $welcomeContent?->hero_background_image_path
-                    ? Storage::url($welcomeContent->hero_background_image_path)
+                    ? Storage::disk('public')->url($welcomeContent->hero_background_image_path)
                     : null,
                 'torPreview' => $welcomeContent?->tor_preview_image_path
-                    ? Storage::url($welcomeContent->tor_preview_image_path)
+                    ? Storage::disk('public')->url($welcomeContent->tor_preview_image_path)
                     : null,
             ],
         ]);
