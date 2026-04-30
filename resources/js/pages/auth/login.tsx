@@ -13,11 +13,7 @@ type Props = {
     canRegister: boolean;
 };
 
-export default function Login({
-    status,
-    canResetPassword,
-    canRegister,
-}: Props) {
+export default function Login({ status }: Props) {
     return (
         <>
             <Head title="Staff Portal" />
