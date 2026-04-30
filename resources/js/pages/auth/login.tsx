@@ -15,7 +15,7 @@ type Props = {
 
 export default function Login({ status }: Props) {
     return (
-        <>
+        <StaffPortalLayout>
             <Head title="Staff Portal" />
 
             <div className="w-full max-w-sm rounded-2xl border border-[#d8d0c9] bg-white p-8 shadow-lg">
@@ -107,21 +107,21 @@ export default function Login({ status }: Props) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="mt-1 flex items-center justify-center gap-1 rounded-md bg-[#6f0000] px-2 py-3 text-xs font-bold text-white hover:bg-[#5a0000] disabled:opacity-50"
+                                className="mt-1 flex items-center justify-center gap-1 rounded-md bg-[#6f0000] px-2 py-3 text-xs font-bold text-white transition-[color,box-shadow] outline-none hover:bg-[#5a0000] focus-visible:ring-2 focus-visible:ring-[#6f0000]/50 focus-visible:ring-offset-2 disabled:opacity-50"
                                 tabIndex={3}
                                 data-test="login-button"
+                                aria-busy={processing}
                             >
-                                {processing ? (
-                                    <Spinner />
-                                ) : (
-                                    <>
-                                        <img
-                                            src="/login-icon.svg"
-                                            alt=""
-                                            className="h-4 w-4"
-                                        />
-                                        Sign In
-                                    </>
+                                {processing && <Spinner />}
+                                <span className={processing ? 'sr-only' : ''}>
+                                    {processing ? 'Signing in…' : 'Sign In'}
+                                </span>
+                                {!processing && (
+                                    <img
+                                        src="/login-icon.svg"
+                                        alt=""
+                                        className="h-4 w-4"
+                                    />
                                 )}
                             </button>
 
@@ -142,8 +142,6 @@ export default function Login({ status }: Props) {
                     )}
                 </Form>
             </div>
-        </>
+        </StaffPortalLayout>
     );
 }
-
-Login.layout = StaffPortalLayout;
