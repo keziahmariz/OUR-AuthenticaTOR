@@ -14,6 +14,8 @@ createInertiaApp({
         switch (true) {
             case name === 'welcome':
                 return null;
+            case name === 'auth/login':
+                return null; // Let the page handle its own layout
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):
