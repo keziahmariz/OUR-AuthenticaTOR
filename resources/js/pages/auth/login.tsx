@@ -4,8 +4,8 @@ import PasswordInput from '@/components/password-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { store } from '@/routes/login';
 import StaffPortalLayout from '@/layouts/auth/staff-portal-layout';
+import { store } from '@/routes/login';
 
 type Props = {
     status?: string;
