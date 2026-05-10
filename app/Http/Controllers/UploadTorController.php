@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UploadTorAnalysisRequest;
 use App\Models\TorAnalysisResult;
 use App\Services\TorAnalysisService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 use RuntimeException;
 
 class UploadTorController extends Controller
@@ -18,7 +21,7 @@ class UploadTorController extends Controller
     /**
      * Show the TOR upload and analysis workflow.
      */
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request): InertiaResponse
     {
         $latestAnalysis = TorAnalysisResult::query()
             ->whereBelongsTo($request->user())
@@ -26,7 +29,14 @@ class UploadTorController extends Controller
             ->first();
 
         return Inertia::render('upload-tor', [
-            'latestAnalysis' => $latestAnalysis,
+            'latestAnalysis' => $latestAnalysis === null
+                ? null
+                : [
+                    ...$latestAnalysis->toArray(),
+                    'preprocessed_image_url' => $latestAnalysis->gradcam_attention_map_url === null
+                        ? null
+                        : route('uploadTor.preprocessedImage', $latestAnalysis),
+                ],
         ]);
     }
 
@@ -59,5 +69,27 @@ class UploadTorController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('TOR analysis completed.')]);
 
         return to_route('uploadTor');
+    }
+
+    /**
+     * Proxy a private Django preprocessed image for the authenticated owner.
+     */
+    public function preprocessedImage(Request $request, TorAnalysisResult $torAnalysisResult): HttpResponse
+    {
+        abort_unless($torAnalysisResult->user_id === $request->user()->id, 404);
+        abort_if($torAnalysisResult->gradcam_attention_map_url === null, 404);
+
+        try {
+            $response = Http::timeout((int) config('services.tor_model.timeout'))
+                ->get($torAnalysisResult->gradcam_attention_map_url);
+        } catch (ConnectionException) {
+            abort(404);
+        }
+
+        abort_unless($response->successful(), 404);
+
+        return response($response->body(), 200)
+            ->header('Content-Type', $response->header('Content-Type') ?: 'image/jpeg')
+            ->header('Cache-Control', 'private, max-age=300');
     }
 }

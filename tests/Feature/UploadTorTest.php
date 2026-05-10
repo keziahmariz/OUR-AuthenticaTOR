@@ -28,6 +28,86 @@ test('authenticated users can visit the upload tor page', function () {
         );
 });
 
+test('upload tor page exposes a laravel proxy url for the latest preprocessed image', function () {
+    $this->withoutVite();
+
+    $user = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $user->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 93.3,
+        'authenticity_score' => 6.7,
+        'verdict' => 'Likely Forged',
+        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'model_result' => ['label' => 'fake', 'score' => 0.933],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('uploadTor'))
+        ->assertOk()
+        ->assertInertia(
+            fn (Assert $page) => $page
+                ->component('upload-tor')
+                ->where('latestAnalysis.id', $analysis->id)
+                ->where('latestAnalysis.preprocessed_image_url', route('uploadTor.preprocessedImage', $analysis)),
+        );
+});
+
+test('authenticated users can view their proxied preprocessed image', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'http://127.0.0.1:8001/media/preprocessed/tor.jpg' => Http::response('image-bytes', 200, [
+            'Content-Type' => 'image/jpeg',
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $user->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 93.3,
+        'authenticity_score' => 6.7,
+        'verdict' => 'Likely Forged',
+        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'model_result' => ['label' => 'fake', 'score' => 0.933],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('uploadTor.preprocessedImage', $analysis))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'image/jpeg')
+        ->assertSee('image-bytes');
+});
+
+test('authenticated users cannot view another users preprocessed image', function () {
+    Http::preventStrayRequests();
+
+    $owner = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $owner->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 93.3,
+        'authenticity_score' => 6.7,
+        'verdict' => 'Likely Forged',
+        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'model_result' => ['label' => 'fake', 'score' => 0.933],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($otherUser)
+        ->get(route('uploadTor.preprocessedImage', $analysis))
+        ->assertNotFound();
+});
+
 test('guests are redirected from the upload tor analysis endpoint', function () {
     $file = UploadedFile::fake()->image('tor.jpg');
 
