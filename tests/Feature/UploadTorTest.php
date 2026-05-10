@@ -319,6 +319,8 @@ function signatureVerificationPayload(): array
                 'best_match_id' => 'abadia',
                 'best_match_name' => 'Judito T. Abadia',
                 'distance' => 0.42,
+                'score' => 0.62,
+                'verdict' => 'GENUINE',
                 'is_match' => true,
                 'ink_pixels' => 25,
                 'bbox_xywh' => [1, 2, 3, 4],

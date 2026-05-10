@@ -51,6 +51,8 @@ type SignatureResult = {
     best_match_id: string | null;
     best_match_name: string | null;
     distance: number | null;
+    score?: number | null;
+    verdict?: string | null;
     is_match: boolean;
     ink_pixels: number;
     bbox_xywh: number[];
@@ -345,6 +347,10 @@ function SignatureResultRow({
         signature.distance === null
             ? 'Unavailable'
             : signature.distance.toFixed(4);
+    const scoreLabel =
+        signature.score === undefined || signature.score === null
+            ? 'Unavailable'
+            : `${(signature.score * 100).toFixed(1)}%`;
 
     return (
         <div className="grid gap-3 rounded-lg border border-[#e2ddd8] bg-[#fbfaf9] p-4 md:grid-cols-[minmax(0,1fr)_9rem]">
@@ -378,6 +384,14 @@ function SignatureResultRow({
                         </span>
                         <span className="font-mono font-medium text-[#393939]">
                             {distanceLabel} / {threshold.toFixed(4)}
+                        </span>
+                    </div>
+                    <div>
+                        <span className="block text-[#919191]">
+                            Similarity score
+                        </span>
+                        <span className="font-mono font-medium text-[#393939]">
+                            {scoreLabel}
                         </span>
                     </div>
                     <div>
