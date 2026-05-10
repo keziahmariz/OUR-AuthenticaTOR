@@ -64,7 +64,12 @@ class TorAnalysisService
         }
 
         if (! $response->successful()) {
-            $message = $response->json('error') ?: __('The TOR model service rejected the uploaded image.');
+            $message = $response->json('error')
+                ?: sprintf(
+                    'The TOR model service rejected the uploaded image. HTTP %d: %s',
+                    $response->status(),
+                    Str::limit(strip_tags($response->body()), 240),
+                );
 
             throw new RuntimeException((string) $message);
         }
