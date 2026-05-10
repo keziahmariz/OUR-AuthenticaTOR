@@ -528,13 +528,17 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
 }
 
 function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
+    const PLOT_HEIGHT = 100;
+
     const roiScores = result.model_result?.roi_scores ?? {};
     const threshold = clampScore(
         result.model_result?.model_threshold ??
             modelThresholds[result.model_key] ??
             modelThresholds[defaultModelKey],
     );
-    const thresholdLineTop = `${Math.max(0, Math.min(106, (1 - threshold) * 90 + 16))}px`;
+
+    const thresholdLineTop = `${(1 - threshold) * PLOT_HEIGHT}px`;
+
     const rows = ['header', 'body', 'footer'].map((region) => {
         const score = clampScore(roiScores[region] ?? 0);
         const isForged = score >= threshold;
@@ -559,56 +563,69 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
 
     return (
         <div className="flex flex-col gap-7">
-            <div className="relative flex w-full items-end">
-                <div className="flex items-center gap-1.5">
-                    <div className="flex h-[106px] flex-col justify-between text-center font-mono text-[8px] text-[#4d4d4d]">
+            <div className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-start">
+                <div className="flex items-start gap-1.5">
+                    <div className="flex h-[100px] flex-col justify-between text-center font-mono text-[8px] text-[#4d4d4d]">
                         {['1.0', '0.8', '0.6', '0.4', '0.2', '0.0'].map(
                             (tick) => (
                                 <span key={tick}>{tick}</span>
                             ),
                         )}
                     </div>
+
                     <div className="h-[100px] w-px bg-[#808080]" />
                 </div>
 
-                <div className="relative flex min-w-0 flex-1 flex-col">
-                    <div className="flex h-[106px] items-end justify-between px-6">
+                <div className="relative min-w-0">
+                    <div className="relative flex h-[100px] items-end justify-between px-6">
                         {rows.map((row) => {
                             const style = barStyles[row.region];
+                            const barHeight = row.score * PLOT_HEIGHT;
 
                             return (
                                 <div
                                     key={row.region}
-                                    className="flex flex-col items-center gap-0.5"
+                                    className="relative flex h-full w-[52px] items-end justify-center"
                                 >
-                                    <span className="font-mono text-[8px] text-[#4d4d4d]">
+                                    <span
+                                        className="absolute -translate-y-1 font-mono text-[8px] text-[#4d4d4d]"
+                                        style={{ bottom: `${barHeight}px` }}
+                                    >
                                         {row.score.toFixed(2)}
                                     </span>
+
                                     <div
-                                        className="w-[52px] rounded-t border"
+                                        className="w-[52px] rounded-t"
                                         style={{
-                                            height: `${Math.max(4, row.score * 90)}px`,
+                                            height: `${barHeight}px`,
                                             backgroundColor: style.bg,
                                             borderColor: style.border,
+                                            borderWidth: row.score > 0 ? 1 : 0,
                                         }}
                                     />
                                 </div>
                             );
                         })}
                     </div>
+
                     <div className="h-px w-full bg-[#808080]" />
-                    <div className="mt-2 flex justify-between px-7 text-[6px] text-[#4f4f4f]">
-                        <span>HEADER</span>
-                        <span>BODY</span>
-                        <span>FOOTER</span>
-                    </div>
+
                     <div
-                        className="absolute h-px w-full border-t border-dashed border-[#9a0000]"
+                        className="absolute left-0 h-px w-full border-t border-dashed border-[#9a0000]"
                         style={{ top: thresholdLineTop }}
                     />
-                    <span className="absolute top-3 right-0 font-mono text-[6px] text-black">
+
+                    <span className="absolute -top-3 right-0 font-mono text-[6px] text-black">
                         threshold: {threshold.toFixed(2)}
                     </span>
+                </div>
+
+                <div />
+
+                <div className="mt-2 flex justify-between px-7 text-[6px] text-[#4f4f4f]">
+                    <span>HEADER</span>
+                    <span>BODY</span>
+                    <span>FOOTER</span>
                 </div>
             </div>
 
@@ -618,6 +635,7 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
                     <div className="px-2 py-1">VERDICT</div>
                     <div className="px-2 py-1">FLAG</div>
                 </div>
+
                 {rows.map((row) => (
                     <div
                         key={row.region}
@@ -626,9 +644,11 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
                         <div className="px-2 py-1">
                             <RegionBadge region={row.region} />
                         </div>
+
                         <div className="px-2 py-1">
                             <VerdictBadge isForged={row.isForged} />
                         </div>
+
                         <div className="px-2 py-1 text-[#897b7b]">
                             {row.isForged
                                 ? `Suspicious activities found in region. Exceeds threshold by ${row.excess.toFixed(3)}.`
