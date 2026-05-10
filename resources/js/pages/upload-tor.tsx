@@ -118,7 +118,20 @@ type SignatureResult = {
     distance: number | null;
     score?: number | null;
     verdict?: string | null;
+    status?: string | null;
+    reason?: string | null;
+    message?: string | null;
+    signature_detected?: boolean;
     is_match: boolean;
+    model_inference_ran?: boolean;
+    presence?: {
+        passed: boolean;
+        reason: string;
+        ink_pixels: number;
+        ink_ratio: number;
+        max_component_area: number;
+        signature_like_components: number;
+    };
     ink_pixels: number;
     bbox_xywh: number[];
     band_crop_url?: string | null;
@@ -592,15 +605,42 @@ function SignatureResultCard({
     const score = signature.score ?? null;
     const signatureImageUrl = signature.ink_mask_url ?? signature.band_crop_url;
     const isGenuine = signature.is_match || signature.verdict === 'GENUINE';
+    const needsReview = signature.verdict === 'NEEDS MANUAL REVIEW';
+    const isInvalid =
+        signature.verdict === 'INVALID' || signature.status === 'INVALID';
     const scoreLabel = score === null ? 'N/A' : score.toFixed(4);
+    const verdictLabel = isGenuine
+        ? 'Likely Genuine'
+        : isInvalid
+          ? 'Invalid'
+          : needsReview
+            ? 'Manual Review'
+            : 'Suspicious';
+    const cardClass = isGenuine
+        ? 'border-[#a2ffaf] bg-[#f0fff4]'
+        : isInvalid
+          ? 'border-[#d3d3d3] bg-[#f9f9f9]'
+          : needsReview
+            ? 'border-[#f0d478] bg-[#fffbea]'
+            : 'border-[#fdb1b1] bg-[#faf6f6]';
+    const verdictClass = isGenuine
+        ? 'bg-[#c7face] text-[#1b622f]'
+        : isInvalid
+          ? 'bg-[#e9e9e9] text-[#656565]'
+          : needsReview
+            ? 'bg-[#f8e7a1] text-[#7b5b00]'
+            : 'bg-[#edd] text-[#9a0000]';
+    const scoreClass = isGenuine
+        ? 'text-[#1b622f]'
+        : isInvalid
+          ? 'text-[#656565]'
+          : needsReview
+            ? 'text-[#7b5b00]'
+            : 'text-[#9a0000]';
 
     return (
         <div
-            className={`flex flex-col items-center gap-3 rounded-lg border px-5 py-6 ${
-                isGenuine
-                    ? 'border-[#a2ffaf] bg-[#f0fff4]'
-                    : 'border-[#fdb1b1] bg-[#faf6f6]'
-            }`}
+            className={`flex flex-col items-center gap-3 rounded-lg border px-5 py-6 ${cardClass}`}
         >
             <div className="flex h-32 w-full max-w-[226px] items-center justify-center overflow-hidden rounded bg-black">
                 {signatureImageUrl ? (
@@ -622,20 +662,12 @@ function SignatureResultCard({
                 </h3>
                 <div className="flex items-center justify-between gap-3">
                     <span
-                        className={`font-mono text-base font-bold ${
-                            isGenuine ? 'text-[#1b622f]' : 'text-[#9a0000]'
-                        }`}
+                        className={`font-mono text-base font-bold ${scoreClass}`}
                     >
                         {scoreLabel}
                     </span>
-                    <span
-                        className={`px-1 text-base ${
-                            isGenuine
-                                ? 'bg-[#c7face] text-[#1b622f]'
-                                : 'bg-[#edd] text-[#9a0000]'
-                        }`}
-                    >
-                        {isGenuine ? 'Likely Genuine' : 'Suspicious'}
+                    <span className={`px-1 text-base ${verdictClass}`}>
+                        {verdictLabel}
                     </span>
                 </div>
                 <p className="text-[8px] text-[#897b7b]">
@@ -644,9 +676,9 @@ function SignatureResultCard({
                         ? ` · distance ${signature.distance.toFixed(4)}`
                         : ''}
                 </p>
-                {signature.error && (
+                {(signature.message || signature.error) && (
                     <p className="text-[8px] text-[#9a0000]">
-                        {signature.error}
+                        {signature.message ?? signature.error}
                     </p>
                 )}
             </div>
