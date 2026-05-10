@@ -56,6 +56,46 @@ test('upload tor page exposes a laravel proxy url for the latest preprocessed im
         );
 });
 
+test('upload tor page exposes signature verification with proxied artifact urls', function () {
+    $this->withoutVite();
+
+    $user = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $user->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 93.3,
+        'authenticity_score' => 6.7,
+        'verdict' => 'Likely Forged',
+        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'model_result' => [
+            'label' => 'fake',
+            'score' => 0.933,
+            'signature_verification' => signatureVerificationPayload(),
+        ],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('uploadTor'))
+        ->assertOk()
+        ->assertInertia(
+            fn (Assert $page) => $page
+                ->component('upload-tor')
+                ->where('latestAnalysis.id', $analysis->id)
+                ->where('latestAnalysis.signature_verification.success', true)
+                ->where('latestAnalysis.signature_verification.signatures.0.best_match_name', 'Judito T. Abadia')
+                ->where(
+                    'latestAnalysis.signature_verification.signatures.0.band_crop_url',
+                    route('uploadTor.signatureArtifact', [
+                        'torAnalysisResult' => $analysis,
+                        'url' => 'http://127.0.0.1:8001/media/signatures/job/sig1_prepared_by_band.png',
+                    ]),
+                ),
+        );
+});
+
 test('authenticated users can view their proxied preprocessed image', function () {
     Http::preventStrayRequests();
     Http::fake([
@@ -108,6 +148,95 @@ test('authenticated users cannot view another users preprocessed image', functio
         ->assertNotFound();
 });
 
+test('authenticated users can view their proxied signature artifact', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'http://127.0.0.1:8001/media/signatures/job/sig1_prepared_by_band.png' => Http::response('signature-bytes', 200, [
+            'Content-Type' => 'image/png',
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $user->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 93.3,
+        'authenticity_score' => 6.7,
+        'verdict' => 'Likely Forged',
+        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'gradcam_attention_map_url' => null,
+        'model_result' => [
+            'signature_verification' => signatureVerificationPayload(),
+        ],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('uploadTor.signatureArtifact', [
+            'torAnalysisResult' => $analysis,
+            'url' => 'http://127.0.0.1:8001/media/signatures/job/sig1_prepared_by_band.png',
+        ]))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'image/png')
+        ->assertSee('signature-bytes');
+});
+
+test('authenticated users cannot view unlisted signature artifact urls', function () {
+    Http::preventStrayRequests();
+
+    $user = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $user->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 93.3,
+        'authenticity_score' => 6.7,
+        'verdict' => 'Likely Forged',
+        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'gradcam_attention_map_url' => null,
+        'model_result' => [
+            'signature_verification' => signatureVerificationPayload(),
+        ],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('uploadTor.signatureArtifact', [
+            'torAnalysisResult' => $analysis,
+            'url' => 'http://127.0.0.1:8001/media/signatures/job/not-listed.png',
+        ]))
+        ->assertNotFound();
+});
+
+test('authenticated users cannot view another users signature artifact', function () {
+    Http::preventStrayRequests();
+
+    $owner = User::factory()->create();
+    $otherUser = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $owner->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 93.3,
+        'authenticity_score' => 6.7,
+        'verdict' => 'Likely Forged',
+        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'gradcam_attention_map_url' => null,
+        'model_result' => [
+            'signature_verification' => signatureVerificationPayload(),
+        ],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($otherUser)
+        ->get(route('uploadTor.signatureArtifact', [
+            'torAnalysisResult' => $analysis,
+            'url' => 'http://127.0.0.1:8001/media/signatures/job/sig1_prepared_by_band.png',
+        ]))
+        ->assertNotFound();
+});
+
 test('guests are redirected from the upload tor analysis endpoint', function () {
     $file = UploadedFile::fake()->image('tor.jpg');
 
@@ -135,6 +264,7 @@ test('authenticated users can analyze a valid tor image', function () {
                 'score' => 0.933,
                 'roi_scores' => ['header' => 0.2, 'body' => 0.4, 'footer' => 0.933],
                 'top_roi' => 'footer',
+                'signature_verification' => signatureVerificationPayload(),
                 'error' => '',
             ],
             'error' => '',
@@ -169,11 +299,37 @@ test('authenticated users can analyze a valid tor image', function () {
         ->model_result->toMatchArray(['label' => 'fake', 'score' => 0.933])
         ->preprocessing->toMatchArray(['method' => 'brightness', 'skew_status' => 'flat']);
 
+    expect($analysis->model_result['signature_verification']['success'])->toBeTrue();
+
     expect(Storage::disk('local')->allFiles('tor-analysis/tmp'))->toBe([]);
 
     Http::assertSent(fn ($request): bool => $request->url() === 'http://127.0.0.1:8001/api/images/'
         && $request->hasHeader('X-TOR-Service-Token', 'testing-token'));
 });
+
+function signatureVerificationPayload(): array
+{
+    return [
+        'success' => true,
+        'threshold' => 0.85,
+        'signatures' => [
+            [
+                'slot' => 'sig1_prepared_by',
+                'label' => 'Prepared By',
+                'best_match_id' => 'abadia',
+                'best_match_name' => 'Judito T. Abadia',
+                'distance' => 0.42,
+                'is_match' => true,
+                'ink_pixels' => 25,
+                'bbox_xywh' => [1, 2, 3, 4],
+                'band_crop_url' => 'http://127.0.0.1:8001/media/signatures/job/sig1_prepared_by_band.png',
+                'ink_mask_url' => 'http://127.0.0.1:8001/media/signatures/job/sig1_prepared_by_ink_mask.png',
+                'error' => '',
+            ],
+        ],
+        'error' => '',
+    ];
+}
 
 test('tor analysis stores no result when django returns a failed analysis', function () {
     Storage::fake('local');

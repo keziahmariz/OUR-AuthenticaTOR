@@ -11,6 +11,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('upload-tor', UploadTorController::class)->name('uploadTor');
     Route::post('upload-tor/analyze', [UploadTorController::class, 'analyze'])->name('uploadTor.analyze');
     Route::get('upload-tor/{torAnalysisResult}/preprocessed-image', [UploadTorController::class, 'preprocessedImage'])->name('uploadTor.preprocessedImage');
+    Route::get('upload-tor/{torAnalysisResult}/signature-artifact', [UploadTorController::class, 'signatureArtifact'])->name('uploadTor.signatureArtifact');
 });
 
 require __DIR__.'/settings.php';
