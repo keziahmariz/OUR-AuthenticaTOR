@@ -36,6 +36,8 @@ test('upload tor page exposes a laravel proxy url for the latest preprocessed im
         'user_id' => $user->id,
         'external_id' => fake()->uuid(),
         'django_job_id' => 11,
+        'model_key' => 'resnet50_mean',
+        'model_label' => 'ResNet50 mean aggregation',
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
@@ -52,6 +54,8 @@ test('upload tor page exposes a laravel proxy url for the latest preprocessed im
             fn (Assert $page) => $page
                 ->component('upload-tor')
                 ->where('latestAnalysis.id', $analysis->id)
+                ->where('latestAnalysis.model_key', 'resnet50_mean')
+                ->where('latestAnalysis.model_label', 'ResNet50 mean aggregation')
                 ->where('latestAnalysis.preprocessed_image_url', route('uploadTor.preprocessedImage', $analysis)),
         );
 });
@@ -250,10 +254,15 @@ test('guests are redirected from the upload tor analysis endpoint', function () 
 test('authenticated users can analyze a valid tor image', function () {
     Storage::fake('local');
     Http::preventStrayRequests();
-    Http::fake([
-        'http://127.0.0.1:8001/api/images/' => Http::response([
+    $modelRequestBody = '';
+    Http::fake(function ($request) use (&$modelRequestBody) {
+        $modelRequestBody = $request->body();
+
+        return Http::response([
             'id' => 11,
             'job_id' => 11,
+            'model_key' => 'resnet50_mean',
+            'model_label' => 'ResNet50 mean aggregation',
             'external_id' => 'ignored-service-echo',
             'status' => 'complete',
             'preprocessed_image_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
@@ -271,8 +280,8 @@ test('authenticated users can analyze a valid tor image', function () {
                 'error' => '',
             ],
             'error' => '',
-        ], 201),
-    ]);
+        ], 201);
+    });
     config([
         'services.tor_model.token' => 'testing-token',
         'services.tor_model.url' => 'http://127.0.0.1:8001',
@@ -285,6 +294,7 @@ test('authenticated users can analyze a valid tor image', function () {
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
             'expected_signatures' => expectedSignaturesPayload(),
+            'model_key' => 'resnet50_mean',
         ])
         ->assertRedirect(route('uploadTor'));
 
@@ -295,6 +305,8 @@ test('authenticated users can analyze a valid tor image', function () {
     expect($analysis)
         ->external_id->not->toBeEmpty()
         ->django_job_id->toBe(11)
+        ->model_key->toBe('resnet50_mean')
+        ->model_label->toBe('ResNet50 mean aggregation')
         ->forgery_confidence->toBe(93.3)
         ->authenticity_score->toBe(6.7)
         ->verdict->toBe('Likely Forged')
@@ -310,6 +322,26 @@ test('authenticated users can analyze a valid tor image', function () {
 
     Http::assertSent(fn ($request): bool => $request->url() === 'http://127.0.0.1:8001/api/images/'
         && $request->hasHeader('X-TOR-Service-Token', 'testing-token'));
+    expect($modelRequestBody)
+        ->toContain('name="model_key"')
+        ->toContain('resnet50_mean');
+});
+
+test('tor analysis rejects invalid model keys', function () {
+    $user = User::factory()->create();
+    $file = UploadedFile::fake()->image('tor.jpg');
+
+    $this->actingAs($user)
+        ->from(route('uploadTor'))
+        ->post(route('uploadTor.analyze'), [
+            'tor_file' => $file,
+            'expected_signatures' => expectedSignaturesPayload(),
+            'model_key' => 'unknown_model',
+        ])
+        ->assertRedirect(route('uploadTor'))
+        ->assertSessionHasErrors('model_key');
+
+    expect(TorAnalysisResult::query()->whereBelongsTo($user)->exists())->toBeFalse();
 });
 
 function expectedSignaturesPayload(): array
@@ -382,6 +414,7 @@ test('tor analysis stores no result when django returns a failed analysis', func
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
             'expected_signatures' => expectedSignaturesPayload(),
+            'model_key' => 'efficientnet_b0',
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');
@@ -403,6 +436,7 @@ test('tor analysis stores no result when django cannot be reached', function () 
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
             'expected_signatures' => expectedSignaturesPayload(),
+            'model_key' => 'efficientnet_b0',
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');
@@ -420,6 +454,7 @@ test('tor analysis rejects invalid file types', function () {
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
             'expected_signatures' => expectedSignaturesPayload(),
+            'model_key' => 'efficientnet_b0',
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');
@@ -436,6 +471,7 @@ test('tor analysis rejects images larger than ten megabytes', function () {
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
             'expected_signatures' => expectedSignaturesPayload(),
+            'model_key' => 'efficientnet_b0',
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');

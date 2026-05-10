@@ -45,10 +45,12 @@ class UploadTorController extends Controller
         $storedPath = $request->file('tor_file')->store('tor-analysis/tmp');
         /** @var array<string, string> $expectedSignatures */
         $expectedSignatures = $request->validated('expected_signatures');
+        /** @var string $modelKey */
+        $modelKey = $request->validated('model_key');
 
         try {
             try {
-                $analysis = $torAnalysisService->analyze($storedPath, $expectedSignatures);
+                $analysis = $torAnalysisService->analyze($storedPath, $expectedSignatures, $modelKey);
             } catch (RuntimeException $exception) {
                 throw ValidationException::withMessages([
                     'tor_file' => $exception->getMessage(),

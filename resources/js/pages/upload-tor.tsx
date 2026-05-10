@@ -3,6 +3,7 @@ import {
     AlertTriangle,
     Camera,
     CheckCircle2,
+    Cpu,
     FileImage,
     Frown,
     RotateCcw,
@@ -24,6 +25,19 @@ const defaultExpectedSignatures = {
     sig2_checked_by: 'abadia',
     sig3_certified_by: 'maniscan',
 } as const;
+const modelOptions = [
+    {
+        key: 'efficientnet_b0',
+        label: 'EfficientNet-B0 baseline',
+        description: 'Current production detector',
+    },
+    {
+        key: 'resnet50_mean',
+        label: 'ResNet50 mean aggregation',
+        description: 'New checkpoint, same preprocessing',
+    },
+] as const;
+const defaultModelKey = 'efficientnet_b0' as const;
 const signaturePersonnel = {
     sig1_prepared_by: [
         { id: 'abadia', name: 'Judito T. Abadia' },
@@ -78,6 +92,8 @@ type StepStatus = 'active' | 'complete' | 'inactive';
 
 type TorAnalysisResult = {
     id: number;
+    model_key: ModelKey;
+    model_label: string;
     forgery_confidence: number;
     authenticity_score: number;
     verdict: string;
@@ -146,9 +162,11 @@ type Props = {
 
 type UploadForm = {
     tor_file: File | null;
+    model_key: ModelKey;
     expected_signatures: ExpectedSignatures;
 };
 
+type ModelKey = (typeof modelOptions)[number]['key'];
 type SignatureSlot = keyof typeof signaturePersonnel;
 type ExpectedSignatures = Record<SignatureSlot, string>;
 
@@ -292,6 +310,60 @@ function SignaturePicker({
     );
 }
 
+function ModelPicker({
+    value,
+    onChange,
+}: {
+    value: ModelKey;
+    onChange: (modelKey: ModelKey) => void;
+}) {
+    return (
+        <div className="flex w-full flex-col overflow-hidden rounded-lg border border-[#e2ddd8]">
+            <div className="flex flex-col gap-1.5 bg-[#fbfaf9] p-4">
+                <h3 className="text-[10px] font-bold text-[#393939]">
+                    Detection Model
+                </h3>
+                <p className="text-[8px] text-[#7b7b7b]">
+                    Choose which trained detector will score this TOR.
+                </p>
+            </div>
+            <div className="grid gap-3 border-t border-[#e2ddd8] bg-white p-4 sm:grid-cols-2">
+                {modelOptions.map((model) => {
+                    const isSelected = value === model.key;
+
+                    return (
+                        <label
+                            key={model.key}
+                            className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition ${
+                                isSelected
+                                    ? 'border-[#9a0000] bg-[#fff6f6]'
+                                    : 'border-[#d3d3d3] bg-white hover:border-[#c4a4a4]'
+                            }`}
+                        >
+                            <input
+                                type="radio"
+                                name="model_key"
+                                value={model.key}
+                                checked={isSelected}
+                                onChange={() => onChange(model.key)}
+                                className="mt-0.5 h-3 w-3 accent-[#9a0000]"
+                            />
+                            <span className="flex min-w-0 flex-col gap-1">
+                                <span className="text-[10px] font-bold text-[#393939]">
+                                    {model.label}
+                                </span>
+                                <span className="text-[8px] text-[#7b7b7b]">
+                                    {model.description}
+                                </span>
+                            </span>
+                        </label>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 function SectionBox({
     title,
     description,
@@ -403,6 +475,20 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
                                 <span>&middot;</span>
                                 <span>Human review recommended</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="flex w-full items-center gap-3 rounded-lg border border-[#e2ddd8] bg-[#fbfaf9] p-4">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#f5eaea] text-[#9a0000]">
+                            <Cpu className="h-4 w-4" />
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <span className="text-[8px] font-bold text-[#897b7b] uppercase">
+                                Detection model
+                            </span>
+                            <span className="truncate text-[10px] font-bold text-[#393939]">
+                                {result.model_label}
+                            </span>
                         </div>
                     </div>
 
@@ -766,6 +852,7 @@ export default function UploadTor({ latestAnalysis }: Props) {
     const { data, setData, post, processing, errors, clearErrors, reset } =
         useForm<UploadForm>({
             tor_file: null,
+            model_key: defaultModelKey,
             expected_signatures: { ...defaultExpectedSignatures },
         });
 
@@ -987,6 +1074,11 @@ export default function UploadTor({ latestAnalysis }: Props) {
         clearErrors(`expected_signatures.${slot}`);
     };
 
+    const handleModelChange = (modelKey: ModelKey) => {
+        setData('model_key', modelKey);
+        clearErrors('model_key');
+    };
+
     const handleReset = () => {
         clearStageTimers();
         setCurrentStep(1);
@@ -996,6 +1088,7 @@ export default function UploadTor({ latestAnalysis }: Props) {
         stopCamera();
         setData({
             tor_file: null,
+            model_key: defaultModelKey,
             expected_signatures: { ...defaultExpectedSignatures },
         });
     };
@@ -1157,6 +1250,11 @@ export default function UploadTor({ latestAnalysis }: Props) {
                             </div>
                         )}
 
+                        <ModelPicker
+                            value={data.model_key}
+                            onChange={handleModelChange}
+                        />
+
                         <SignaturePicker
                             value={data.expected_signatures}
                             onChange={handleExpectedSignatureChange}
@@ -1168,6 +1266,7 @@ export default function UploadTor({ latestAnalysis }: Props) {
                             </p>
                         )}
                         <InputError message={errors.tor_file} />
+                        <InputError message={errors.model_key} />
                         <InputError
                             message={
                                 errors['expected_signatures.sig1_prepared_by']

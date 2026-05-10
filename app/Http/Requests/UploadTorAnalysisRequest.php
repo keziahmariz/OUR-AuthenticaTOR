@@ -22,6 +22,11 @@ class UploadTorAnalysisRequest extends FormRequest
         'vistar',
     ];
 
+    private const ModelKeys = [
+        'efficientnet_b0',
+        'resnet50_mean',
+    ];
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -39,6 +44,7 @@ class UploadTorAnalysisRequest extends FormRequest
     {
         return [
             'tor_file' => ['required', 'file', 'mimetypes:image/jpeg,image/png', 'max:10240'],
+            'model_key' => ['required', 'string', Rule::in(self::ModelKeys)],
             'expected_signatures' => ['required', 'array'],
             'expected_signatures.sig1_prepared_by' => ['required', 'string', Rule::in(self::PreparedAndCheckedSignatories)],
             'expected_signatures.sig2_checked_by' => ['required', 'string', Rule::in(self::PreparedAndCheckedSignatories)],

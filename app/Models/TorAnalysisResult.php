@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'external_id',
     'django_job_id',
+    'model_key',
+    'model_label',
     'forgery_confidence',
     'authenticity_score',
     'verdict',

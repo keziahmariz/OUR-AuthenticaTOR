@@ -17,6 +17,8 @@ class TorAnalysisService
      * @return array{
      *     external_id: string,
      *     django_job_id: int|null,
+     *     model_key: string,
+     *     model_label: string,
      *     forgery_confidence: float,
      *     authenticity_score: float,
      *     verdict: string,
@@ -30,10 +32,10 @@ class TorAnalysisService
     /**
      * @param  array<string, string>  $expectedSignatures
      */
-    public function analyze(string $storedPath, array $expectedSignatures = []): array
+    public function analyze(string $storedPath, array $expectedSignatures = [], string $modelKey = 'efficientnet_b0'): array
     {
         $externalId = (string) Str::uuid();
-        $payload = $this->sendToModelService($storedPath, $externalId, $expectedSignatures);
+        $payload = $this->sendToModelService($storedPath, $externalId, $expectedSignatures, $modelKey);
 
         return $this->mapResponse($payload, $externalId);
     }
@@ -42,7 +44,7 @@ class TorAnalysisService
      * @param  array<string, string>  $expectedSignatures
      * @return array<string, mixed>
      */
-    private function sendToModelService(string $storedPath, string $externalId, array $expectedSignatures): array
+    private function sendToModelService(string $storedPath, string $externalId, array $expectedSignatures, string $modelKey): array
     {
         $path = Storage::path($storedPath);
         $stream = fopen($path, 'r');
@@ -60,6 +62,7 @@ class TorAnalysisService
                 ->post($this->modelEndpoint(), [
                     'external_id' => $externalId,
                     'callback_url' => '',
+                    'model_key' => $modelKey,
                     'expected_signatures' => json_encode($expectedSignatures, JSON_THROW_ON_ERROR),
                 ]);
         } catch (ConnectionException $exception) {
@@ -99,6 +102,8 @@ class TorAnalysisService
      * @return array{
      *     external_id: string,
      *     django_job_id: int|null,
+     *     model_key: string,
+     *     model_label: string,
      *     forgery_confidence: float,
      *     authenticity_score: float,
      *     verdict: string,
@@ -132,6 +137,8 @@ class TorAnalysisService
         return [
             'external_id' => $externalId,
             'django_job_id' => $this->intValue($payload, 'job_id'),
+            'model_key' => $this->stringValue($payload, 'model_key') ?: $this->stringValue($result, 'model_key') ?: 'efficientnet_b0',
+            'model_label' => $this->stringValue($payload, 'model_label') ?: $this->stringValue($result, 'model_label') ?: 'EfficientNet-B0 baseline',
             'forgery_confidence' => $forgeryConfidence,
             'authenticity_score' => $authenticityScore,
             'verdict' => $label === 'fake' ? 'Likely Forged' : 'Likely Authentic',
