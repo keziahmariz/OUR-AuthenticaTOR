@@ -72,6 +72,7 @@ test('upload tor page exposes signature verification with proxied artifact urls'
         'model_result' => [
             'label' => 'fake',
             'score' => 0.933,
+            'degree_extraction' => degreeExtractionPayload(),
             'signature_verification' => signatureVerificationPayload(),
         ],
         'preprocessing' => ['method' => 'brightness'],
@@ -84,6 +85,7 @@ test('upload tor page exposes signature verification with proxied artifact urls'
             fn (Assert $page) => $page
                 ->component('upload-tor')
                 ->where('latestAnalysis.id', $analysis->id)
+                ->where('latestAnalysis.model_result.degree_extraction.degree', 'Bachelor of Science in Information Technology')
                 ->where('latestAnalysis.signature_verification.success', true)
                 ->where('latestAnalysis.signature_verification.signatures.0.best_match_name', 'Judito T. Abadia')
                 ->where(
@@ -264,6 +266,7 @@ test('authenticated users can analyze a valid tor image', function () {
                 'score' => 0.933,
                 'roi_scores' => ['header' => 0.2, 'body' => 0.4, 'footer' => 0.933],
                 'top_roi' => 'footer',
+                'degree_extraction' => degreeExtractionPayload(),
                 'signature_verification' => signatureVerificationPayload(),
                 'error' => '',
             ],
@@ -300,6 +303,7 @@ test('authenticated users can analyze a valid tor image', function () {
         ->model_result->toMatchArray(['label' => 'fake', 'score' => 0.933])
         ->preprocessing->toMatchArray(['method' => 'brightness', 'skew_status' => 'flat']);
 
+    expect($analysis->model_result['degree_extraction']['degree'])->toBe('Bachelor of Science in Information Technology');
     expect($analysis->model_result['signature_verification']['success'])->toBeTrue();
 
     expect(Storage::disk('local')->allFiles('tor-analysis/tmp'))->toBe([]);
@@ -340,6 +344,19 @@ function signatureVerificationPayload(): array
             ],
         ],
         'error' => '',
+    ];
+}
+
+function degreeExtractionPayload(): array
+{
+    return [
+        'success' => true,
+        'degree' => 'Bachelor of Science in Information Technology',
+        'title' => 'Bachelor of Science in Information Technology',
+        'course' => 'Bachelor of Science in Information Technology',
+        'program_match' => null,
+        'message' => 'Degree extracted from TOR OCR.',
+        'raw_text' => "Degree/Title/Course:\nBachelor of Science in Information Technology",
     ];
 }
 

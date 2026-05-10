@@ -657,6 +657,7 @@ function SignatureResultCard({
 function OcrDegreePanel({ ocr }: { ocr?: OcrResult | null }) {
     const degree = ocr?.degree ?? ocr?.title ?? ocr?.course ?? 'Unavailable';
     const hasMatch = ocr?.program_match === true;
+    const wasChecked = typeof ocr?.program_match === 'boolean';
     const message =
         ocr?.message ??
         (hasMatch
@@ -677,7 +678,9 @@ function OcrDegreePanel({ ocr }: { ocr?: OcrResult | null }) {
                 className={`flex h-[22px] items-center rounded-full border px-3 text-[8px] font-bold ${
                     hasMatch
                         ? 'border-[#c5fdad] bg-[#e5ffd9] text-[#58983c]'
-                        : 'border-[#fdb1b1] bg-[#f5eaea] text-[#9a0000]'
+                        : wasChecked
+                          ? 'border-[#fdb1b1] bg-[#f5eaea] text-[#9a0000]'
+                          : 'border-[#d3d3d3] bg-white text-[#656565]'
                 }`}
             >
                 {message}
