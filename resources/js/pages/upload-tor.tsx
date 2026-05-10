@@ -159,7 +159,10 @@ type SignaturePersonnelOption = {
     id: string;
     name: string;
 };
-type SignaturePersonnelBySlot = Record<SignatureSlot, SignaturePersonnelOption[]>;
+type SignaturePersonnelBySlot = Record<
+    SignatureSlot,
+    SignaturePersonnelOption[]
+>;
 
 interface StepIndicatorProps {
     number: number;
@@ -531,7 +534,7 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
             modelThresholds[result.model_key] ??
             modelThresholds[defaultModelKey],
     );
-    const thresholdLineTop = `${Math.max(0, Math.min(100, (1 - threshold) * 100))}px`;
+    const thresholdLineTop = `${Math.max(0, Math.min(106, (1 - threshold) * 90 + 16))}px`;
     const rows = ['header', 'body', 'footer'].map((region) => {
         const score = clampScore(roiScores[region] ?? 0);
         const isForged = score >= threshold;
@@ -801,7 +804,8 @@ function SignatureResultCard({
 function OcrDegreePanel({ ocr }: { ocr?: OcrResult | null }) {
     const degree = ocr?.degree ?? ocr?.title ?? ocr?.course ?? 'Unavailable';
     const hasMatch = ocr?.program_match?.matched === true;
-    const wasChecked = ocr?.program_match !== null && ocr?.program_match !== undefined;
+    const wasChecked =
+        ocr?.program_match !== null && ocr?.program_match !== undefined;
     const message =
         hasMatch && ocr?.program_match?.program
             ? `Matches ${ocr.program_match.program.display_name}.`
@@ -836,7 +840,10 @@ function clampScore(value: number) {
     return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 }
 
-export default function UploadTor({ latestAnalysis, signaturePersonnel }: Props) {
+export default function UploadTor({
+    latestAnalysis,
+    signaturePersonnel,
+}: Props) {
     const defaultExpectedSignatures = signaturePickerSlots.reduce(
         (defaults, slot) => ({
             ...defaults,
