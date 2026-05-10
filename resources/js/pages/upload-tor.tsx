@@ -7,6 +7,7 @@ import {
     Frown,
     RotateCcw,
     Search,
+    Smile,
     X,
     Upload,
 } from 'lucide-react';
@@ -345,6 +346,7 @@ function ConfidenceBar({
 function ResultsPanel({ result }: { result: TorAnalysisResult }) {
     const ocrResult =
         result.model_result?.degree_extraction ?? result.model_result?.ocr;
+    const isAuthentic = result.verdict === 'Likely Authentic';
 
     return (
         <div className="flex flex-col gap-3">
@@ -366,15 +368,37 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
                         </div>
                     )}
 
-                    <div className="flex w-full items-center gap-4 rounded-lg border border-[#ffc5c5] bg-[#fff4f4] p-5">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#ffc5c5] text-[#9a0000]">
-                            <Frown className="h-6 w-6" />
+                    <div
+                        className={`flex w-full items-center gap-4 rounded-lg border p-5 ${
+                            isAuthentic
+                                ? 'border-[#84d5ac] bg-[#eaf5ee]'
+                                : 'border-[#ffc5c5] bg-[#fff4f4]'
+                        }`}
+                    >
+                        <div
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${
+                                isAuthentic
+                                    ? 'border-[#84d5ac] bg-[#eaf5ee] text-[#0b7b4a]'
+                                    : 'border-[#ffc5c5] text-[#9a0000]'
+                            }`}
+                        >
+                            {isAuthentic ? (
+                                <Smile className="h-6 w-6" strokeWidth={1.8} />
+                            ) : (
+                                <Frown className="h-6 w-6" />
+                            )}
                         </div>
-                        <div className="flex min-w-0 flex-col gap-2">
-                            <h3 className="text-sm font-bold text-[#9a0000]">
+                        <div className="flex min-w-0 flex-col justify-center gap-2.5">
+                            <h3
+                                className={`text-sm leading-none font-bold ${
+                                    isAuthentic
+                                        ? 'text-[#0b7b4a]'
+                                        : 'text-[#9a0000]'
+                                }`}
+                            >
                                 {result.verdict}
                             </h3>
-                            <div className="flex flex-wrap items-center gap-2 text-[7px] text-[#656565]">
+                            <div className="flex flex-wrap items-center gap-2 font-mono text-[7px] leading-none text-[#656565]">
                                 <span>High-confidence detection</span>
                                 <span>&middot;</span>
                                 <span>Human review recommended</span>
