@@ -43,6 +43,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'can' => [
                 'manageWelcomeContent' => $request->user()?->can('manageWelcomeContent') ?? false,
+                'manageSignatures' => $request->user()?->can('manageSignatures') ?? false,
+                'manageAcademicPrograms' => $request->user()?->can('manageAcademicPrograms') ?? false,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

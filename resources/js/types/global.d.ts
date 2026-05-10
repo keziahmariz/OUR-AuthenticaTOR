@@ -7,6 +7,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             can: {
                 manageWelcomeContent: boolean;
+                manageSignatures: boolean;
+                manageAcademicPrograms: boolean;
             };
             sidebarOpen: boolean;
             [key: string]: unknown;

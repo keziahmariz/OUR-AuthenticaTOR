@@ -2,11 +2,18 @@
 
 use App\Models\TorAnalysisResult;
 use App\Models\User;
+use Database\Seeders\AcademicProgramSeeder;
+use Database\Seeders\SignaturePersonnelSeeder;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+
+beforeEach(function () {
+    $this->seed(SignaturePersonnelSeeder::class);
+    $this->seed(AcademicProgramSeeder::class);
+});
 
 test('guests are redirected to the login page from the upload tor page', function () {
     $this->get(route('uploadTor'))
@@ -24,7 +31,9 @@ test('authenticated users can visit the upload tor page', function () {
         ->assertInertia(
             fn (Assert $page) => $page
                 ->component('upload-tor')
-                ->where('latestAnalysis', null),
+                ->where('latestAnalysis', null)
+                ->where('signaturePersonnel.sig1_prepared_by.0.id', 'abadia')
+                ->where('signaturePersonnel.sig3_certified_by.0.id', 'maniscan'),
         );
 });
 
@@ -316,6 +325,8 @@ test('authenticated users can analyze a valid tor image', function () {
         ->preprocessing->toMatchArray(['method' => 'brightness', 'skew_status' => 'flat']);
 
     expect($analysis->model_result['degree_extraction']['degree'])->toBe('Bachelor of Science in Information Technology');
+    expect($analysis->model_result['degree_extraction']['program_match']['matched'])->toBeTrue();
+    expect($analysis->model_result['degree_extraction']['program_match']['program']['degree'])->toBe('Bachelor of Science in Information Technology');
     expect($analysis->model_result['signature_verification']['success'])->toBeTrue();
 
     expect(Storage::disk('local')->allFiles('tor-analysis/tmp'))->toBe([]);

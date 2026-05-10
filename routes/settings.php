@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Settings\AcademicProgramController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\SignatureReferenceController;
 use App\Http\Controllers\Settings\WelcomeContentController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +30,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('settings/welcome-content', [WelcomeContentController::class, 'update'])
         ->can('manageWelcomeContent')
         ->name('welcome-content.update');
+
+    Route::get('settings/signatures', [SignatureReferenceController::class, 'edit'])
+        ->can('manageSignatures')
+        ->name('signatures.edit');
+
+    Route::patch('settings/signatures/{signaturePersonnel}', [SignatureReferenceController::class, 'update'])
+        ->can('manageSignatures')
+        ->name('signatures.update');
+
+    Route::post('settings/signatures/references', [SignatureReferenceController::class, 'store'])
+        ->can('manageSignatures')
+        ->name('signatures.references.store');
+
+    Route::get('settings/academic-programs', [AcademicProgramController::class, 'edit'])
+        ->can('manageAcademicPrograms')
+        ->name('academic-programs.edit');
+
+    Route::post('settings/academic-programs', [AcademicProgramController::class, 'store'])
+        ->can('manageAcademicPrograms')
+        ->name('academic-programs.store');
+
+    Route::patch('settings/academic-programs/{academicProgram}', [AcademicProgramController::class, 'update'])
+        ->can('manageAcademicPrograms')
+        ->name('academic-programs.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
 });

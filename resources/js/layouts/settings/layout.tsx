@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
+import { edit as editAcademicPrograms } from '@/routes/academic-programs';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
+import { edit as editSignatures } from '@/routes/signatures';
 import { edit as editWelcomeContent } from '@/routes/welcome-content';
 import type { NavItem } from '@/types';
 
@@ -15,6 +17,8 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     const { can } = usePage().props as {
         can?: {
             manageWelcomeContent?: boolean;
+            manageSignatures?: boolean;
+            manageAcademicPrograms?: boolean;
         };
     };
 
@@ -41,6 +45,24 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                   {
                       title: 'Welcome content',
                       href: editWelcomeContent(),
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(can?.manageSignatures
+            ? [
+                  {
+                      title: 'Signatures',
+                      href: editSignatures(),
+                      icon: null,
+                  },
+              ]
+            : []),
+        ...(can?.manageAcademicPrograms
+            ? [
+                  {
+                      title: 'Academic programs',
+                      href: editAcademicPrograms(),
                       icon: null,
                   },
               ]

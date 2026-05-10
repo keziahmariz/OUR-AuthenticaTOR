@@ -20,11 +20,6 @@ import { uploadTor } from '@/routes';
 
 const allowedMimeTypes = ['image/jpeg', 'image/png'];
 const maxFileSize = 10 * 1024 * 1024;
-const defaultExpectedSignatures = {
-    sig1_prepared_by: 'abadia',
-    sig2_checked_by: 'abadia',
-    sig3_certified_by: 'maniscan',
-} as const;
 const modelOptions = [
     {
         key: 'efficientnet_b0',
@@ -42,35 +37,6 @@ const modelThresholds: Record<ModelKey, number> = {
     efficientnet_b0: 0.38,
     resnet50_mean: 0.34,
 };
-const signaturePersonnel = {
-    sig1_prepared_by: [
-        { id: 'abadia', name: 'Judito T. Abadia' },
-        { id: 'arabejo', name: 'Kurt Russel D. Arabejo' },
-        { id: 'calunsag', name: 'John Kelvin M. Calunsag' },
-        { id: 'corotan', name: 'Shunn-Lois B. Corotan' },
-        { id: 'dagohoy', name: 'Charis Mae L. Dagohoy' },
-        { id: 'kusain', name: 'Jolina Shaira R. Kusain' },
-        { id: 'llerin', name: 'Elizabeth M. Llerin' },
-        { id: 'mamac', name: 'Jennifer D. Mamac' },
-        { id: 'mansueto', name: 'Emmie Rose B. Mansueto' },
-        { id: 'munoz', name: 'Bhritney Fearl Munoz' },
-        { id: 'vistar', name: 'Sheovy B. Vistar' },
-    ],
-    sig2_checked_by: [
-        { id: 'abadia', name: 'Judito T. Abadia' },
-        { id: 'arabejo', name: 'Kurt Russel D. Arabejo' },
-        { id: 'calunsag', name: 'John Kelvin M. Calunsag' },
-        { id: 'corotan', name: 'Shunn-Lois B. Corotan' },
-        { id: 'dagohoy', name: 'Charis Mae L. Dagohoy' },
-        { id: 'kusain', name: 'Jolina Shaira R. Kusain' },
-        { id: 'llerin', name: 'Elizabeth M. Llerin' },
-        { id: 'mamac', name: 'Jennifer D. Mamac' },
-        { id: 'mansueto', name: 'Emmie Rose B. Mansueto' },
-        { id: 'munoz', name: 'Bhritney Fearl Munoz' },
-        { id: 'vistar', name: 'Sheovy B. Vistar' },
-    ],
-    sig3_certified_by: [{ id: 'maniscan', name: 'Nimfa V. Maniscan' }],
-} as const;
 const signaturePickerSlots = [
     {
         key: 'sig1_prepared_by',
@@ -121,8 +87,22 @@ type OcrResult = {
     degree?: string | null;
     title?: string | null;
     course?: string | null;
-    program_match?: boolean | null;
+    program_match?: ProgramMatch | null;
     message?: string | null;
+};
+
+type ProgramMatch = {
+    matched: boolean;
+    normalized_degree: string;
+    program: {
+        id: number;
+        campus: string;
+        college: string;
+        program_level: string;
+        degree: string;
+        specialization: string | null;
+        display_name: string;
+    } | null;
 };
 
 type SignatureVerification = {
@@ -163,6 +143,7 @@ type SignatureResult = {
 
 type Props = {
     latestAnalysis: TorAnalysisResult | null;
+    signaturePersonnel: SignaturePersonnelBySlot;
 };
 
 type UploadForm = {
@@ -172,8 +153,13 @@ type UploadForm = {
 };
 
 type ModelKey = (typeof modelOptions)[number]['key'];
-type SignatureSlot = keyof typeof signaturePersonnel;
+type SignatureSlot = (typeof signaturePickerSlots)[number]['key'];
 type ExpectedSignatures = Record<SignatureSlot, string>;
+type SignaturePersonnelOption = {
+    id: string;
+    name: string;
+};
+type SignaturePersonnelBySlot = Record<SignatureSlot, SignaturePersonnelOption[]>;
 
 interface StepIndicatorProps {
     number: number;
@@ -272,9 +258,11 @@ function UploadArea({
 }
 
 function SignaturePicker({
+    personnel,
     value,
     onChange,
 }: {
+    personnel: SignaturePersonnelBySlot;
     value: ExpectedSignatures;
     onChange: (slot: SignatureSlot, signerId: string) => void;
 }) {
@@ -302,7 +290,7 @@ function SignaturePicker({
                             }
                             className="h-10 w-full rounded-md border border-[#cdc9c9] bg-white px-3 text-[10px] font-normal text-[#635858] uppercase transition outline-none focus:border-[#9a0000] focus:ring-2 focus:ring-[#ffeaea]"
                         >
-                            {signaturePersonnel[slot.key].map((person) => (
+                            {(personnel[slot.key] ?? []).map((person) => (
                                 <option key={person.id} value={person.id}>
                                     {person.name}
                                 </option>
@@ -812,13 +800,12 @@ function SignatureResultCard({
 
 function OcrDegreePanel({ ocr }: { ocr?: OcrResult | null }) {
     const degree = ocr?.degree ?? ocr?.title ?? ocr?.course ?? 'Unavailable';
-    const hasMatch = ocr?.program_match === true;
-    const wasChecked = typeof ocr?.program_match === 'boolean';
+    const hasMatch = ocr?.program_match?.matched === true;
+    const wasChecked = ocr?.program_match !== null && ocr?.program_match !== undefined;
     const message =
-        ocr?.message ??
-        (hasMatch
-            ? 'Matches the USeP Program List.'
-            : 'Does not match any USeP Program List.');
+        hasMatch && ocr?.program_match?.program
+            ? `Matches ${ocr.program_match.program.display_name}.`
+            : (ocr?.message ?? 'Does not match any USeP Program List.');
 
     return (
         <div className="flex flex-col gap-3 rounded border border-[#cdc9c9] bg-[#f5f5f5] p-3">
@@ -849,7 +836,14 @@ function clampScore(value: number) {
     return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 }
 
-export default function UploadTor({ latestAnalysis }: Props) {
+export default function UploadTor({ latestAnalysis, signaturePersonnel }: Props) {
+    const defaultExpectedSignatures = signaturePickerSlots.reduce(
+        (defaults, slot) => ({
+            ...defaults,
+            [slot.key]: signaturePersonnel[slot.key]?.[0]?.id ?? '',
+        }),
+        {} as ExpectedSignatures,
+    );
     const [isDragOver, setIsDragOver] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [clientError, setClientError] = useState<string | null>(null);
@@ -1270,6 +1264,7 @@ export default function UploadTor({ latestAnalysis }: Props) {
                         />
 
                         <SignaturePicker
+                            personnel={signaturePersonnel}
                             value={data.expected_signatures}
                             onChange={handleExpectedSignatureChange}
                         />

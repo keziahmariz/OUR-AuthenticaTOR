@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UploadTorAnalysisRequest;
+use App\Models\SignaturePersonnel;
 use App\Models\TorAnalysisResult;
 use App\Services\TorAnalysisService;
 use Illuminate\Http\Client\ConnectionException;
@@ -32,6 +33,7 @@ class UploadTorController extends Controller
             'latestAnalysis' => $latestAnalysis === null
                 ? null
                 : $this->presentAnalysis($latestAnalysis),
+            'signaturePersonnel' => $this->signaturePersonnel(),
         ]);
     }
 
@@ -106,6 +108,34 @@ class UploadTorController extends Controller
                 : route('uploadTor.preprocessedImage', $analysis),
             'signature_verification' => $this->signatureVerificationFor($analysis),
         ];
+    }
+
+    /**
+     * @return array<string, list<array{id: string, name: string}>>
+     */
+    private function signaturePersonnel(): array
+    {
+        $slots = ['sig1_prepared_by', 'sig2_checked_by', 'sig3_certified_by'];
+        $personnel = SignaturePersonnel::query()
+            ->where('is_active', true)
+            ->whereHas('slots', fn ($query) => $query->whereIn('slot', $slots))
+            ->with(['slots' => fn ($query) => $query->whereIn('slot', $slots)])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return collect($slots)
+            ->mapWithKeys(fn (string $slot): array => [
+                $slot => $personnel
+                    ->filter(fn (SignaturePersonnel $person): bool => $person->slots->contains('slot', $slot))
+                    ->map(fn (SignaturePersonnel $person): array => [
+                        'id' => $person->slug,
+                        'name' => $person->name,
+                    ])
+                    ->values()
+                    ->all(),
+            ])
+            ->all();
     }
 
     /**

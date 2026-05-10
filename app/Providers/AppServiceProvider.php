@@ -58,5 +58,7 @@ class AppServiceProvider extends ServiceProvider
     protected function configureAuthorization(): void
     {
         Gate::define('manageWelcomeContent', fn (User $user): bool => $user->is_admin);
+        Gate::define('manageSignatures', fn (User $user): bool => $user->is_admin);
+        Gate::define('manageAcademicPrograms', fn (User $user): bool => $user->is_admin);
     }
 }

@@ -11,6 +11,8 @@ use RuntimeException;
 
 class TorAnalysisService
 {
+    public function __construct(private AcademicProgramMatcher $academicProgramMatcher) {}
+
     /**
      * Analyze an uploaded TOR image.
      *
@@ -128,6 +130,7 @@ class TorAnalysisService
         $forgeryConfidence = round($score * 100, 2);
         $authenticityScore = round(100 - $forgeryConfidence, 2);
         $label = $this->stringValue($result, 'label');
+        $result = $this->withProgramMatch($result);
         $preprocessing = [
             'method' => $this->stringValue($payload, 'method'),
             'skew_status' => $this->stringValue($payload, 'skew_status'),
@@ -148,6 +151,32 @@ class TorAnalysisService
             'preprocessing' => $preprocessing,
             'error' => null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function withProgramMatch(array $result): array
+    {
+        $degreeExtraction = $this->arrayValue($result, 'degree_extraction');
+
+        if ($degreeExtraction === []) {
+            $degreeExtraction = $this->arrayValue($result, 'ocr');
+        }
+
+        if ($degreeExtraction === []) {
+            return $result;
+        }
+
+        $degree = $this->stringValue($degreeExtraction, 'degree')
+            ?: $this->stringValue($degreeExtraction, 'course')
+            ?: $this->stringValue($degreeExtraction, 'title');
+
+        $degreeExtraction['program_match'] = $this->academicProgramMatcher->match($degree);
+        $result['degree_extraction'] = $degreeExtraction;
+
+        return $result;
     }
 
     /**

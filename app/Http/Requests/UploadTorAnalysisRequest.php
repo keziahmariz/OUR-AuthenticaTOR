@@ -2,26 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\SignaturePersonnelSlot;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
 
 class UploadTorAnalysisRequest extends FormRequest
 {
-    private const PreparedAndCheckedSignatories = [
-        'abadia',
-        'arabejo',
-        'calunsag',
-        'corotan',
-        'dagohoy',
-        'kusain',
-        'llerin',
-        'mamac',
-        'mansueto',
-        'munoz',
-        'vistar',
-    ];
-
     private const ModelKeys = [
         'efficientnet_b0',
         'resnet50_mean',
@@ -46,9 +34,21 @@ class UploadTorAnalysisRequest extends FormRequest
             'tor_file' => ['required', 'file', 'mimetypes:image/jpeg,image/png', 'max:10240'],
             'model_key' => ['required', 'string', Rule::in(self::ModelKeys)],
             'expected_signatures' => ['required', 'array'],
-            'expected_signatures.sig1_prepared_by' => ['required', 'string', Rule::in(self::PreparedAndCheckedSignatories)],
-            'expected_signatures.sig2_checked_by' => ['required', 'string', Rule::in(self::PreparedAndCheckedSignatories)],
-            'expected_signatures.sig3_certified_by' => ['required', 'string', Rule::in(['maniscan'])],
+            'expected_signatures.sig1_prepared_by' => ['required', 'string', $this->activeSlotPersonnelRule('sig1_prepared_by')],
+            'expected_signatures.sig2_checked_by' => ['required', 'string', $this->activeSlotPersonnelRule('sig2_checked_by')],
+            'expected_signatures.sig3_certified_by' => ['required', 'string', $this->activeSlotPersonnelRule('sig3_certified_by')],
         ];
+    }
+
+    private function activeSlotPersonnelRule(string $slot): In
+    {
+        $allowedSlugs = SignaturePersonnelSlot::query()
+            ->where('slot', $slot)
+            ->whereHas('personnel', fn ($query) => $query->where('is_active', true))
+            ->join('signature_personnels', 'signature_personnels.id', '=', 'signature_personnel_slots.signature_personnel_id')
+            ->pluck('signature_personnels.slug')
+            ->all();
+
+        return Rule::in($allowedSlugs);
     }
 }
