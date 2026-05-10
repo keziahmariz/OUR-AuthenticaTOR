@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'tor_model' => [
+        'url' => env('TOR_MODEL_SERVICE_URL', 'http://127.0.0.1:8001'),
+        'token' => env('TOR_MODEL_SERVICE_TOKEN', 'local-dev-token'),
+        'timeout' => (int) env('TOR_MODEL_TIMEOUT_SECONDS', 120),
+    ],
+
 ];

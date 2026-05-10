@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id',
+    'external_id',
+    'django_job_id',
     'forgery_confidence',
     'authenticity_score',
     'verdict',
     'detected_indicators',
     'gradcam_attention_map_url',
+    'model_result',
+    'preprocessing',
+    'error',
 ])]
 class TorAnalysisResult extends Model
 {
@@ -27,6 +32,8 @@ class TorAnalysisResult extends Model
             'forgery_confidence' => 'float',
             'authenticity_score' => 'float',
             'detected_indicators' => 'array',
+            'model_result' => 'array',
+            'preprocessing' => 'array',
         ];
     }
 

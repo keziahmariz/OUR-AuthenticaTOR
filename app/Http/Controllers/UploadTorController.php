@@ -8,8 +8,10 @@ use App\Services\TorAnalysisService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class UploadTorController extends Controller
 {
@@ -38,7 +40,13 @@ class UploadTorController extends Controller
         $storedPath = $request->file('tor_file')->store('tor-analysis/tmp');
 
         try {
-            $analysis = $torAnalysisService->analyze($storedPath);
+            try {
+                $analysis = $torAnalysisService->analyze($storedPath);
+            } catch (RuntimeException $exception) {
+                throw ValidationException::withMessages([
+                    'tor_file' => $exception->getMessage(),
+                ]);
+            }
 
             TorAnalysisResult::query()->create([
                 'user_id' => $request->user()->id,
