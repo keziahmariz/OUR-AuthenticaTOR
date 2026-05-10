@@ -18,6 +18,54 @@ import { uploadTor } from '@/routes';
 
 const allowedMimeTypes = ['image/jpeg', 'image/png'];
 const maxFileSize = 10 * 1024 * 1024;
+const defaultExpectedSignatures = {
+    sig1_prepared_by: 'abadia',
+    sig2_checked_by: 'abadia',
+    sig3_certified_by: 'maniscan',
+} as const;
+const signaturePersonnel = {
+    sig1_prepared_by: [
+        { id: 'abadia', name: 'Judito T. Abadia' },
+        { id: 'arabejo', name: 'Kurt Russel D. Arabejo' },
+        { id: 'calunsag', name: 'John Kelvin M. Calunsag' },
+        { id: 'corotan', name: 'Shunn-Lois B. Corotan' },
+        { id: 'dagohoy', name: 'Charis Mae L. Dagohoy' },
+        { id: 'kusain', name: 'Jolina Shaira R. Kusain' },
+        { id: 'llerin', name: 'Elizabeth M. Llerin' },
+        { id: 'mamac', name: 'Jennifer D. Mamac' },
+        { id: 'mansueto', name: 'Emmie Rose B. Mansueto' },
+        { id: 'munoz', name: 'Bhritney Fearl Munoz' },
+        { id: 'vistar', name: 'Sheovy B. Vistar' },
+    ],
+    sig2_checked_by: [
+        { id: 'abadia', name: 'Judito T. Abadia' },
+        { id: 'arabejo', name: 'Kurt Russel D. Arabejo' },
+        { id: 'calunsag', name: 'John Kelvin M. Calunsag' },
+        { id: 'corotan', name: 'Shunn-Lois B. Corotan' },
+        { id: 'dagohoy', name: 'Charis Mae L. Dagohoy' },
+        { id: 'kusain', name: 'Jolina Shaira R. Kusain' },
+        { id: 'llerin', name: 'Elizabeth M. Llerin' },
+        { id: 'mamac', name: 'Jennifer D. Mamac' },
+        { id: 'mansueto', name: 'Emmie Rose B. Mansueto' },
+        { id: 'munoz', name: 'Bhritney Fearl Munoz' },
+        { id: 'vistar', name: 'Sheovy B. Vistar' },
+    ],
+    sig3_certified_by: [{ id: 'maniscan', name: 'Nimfa V. Maniscan' }],
+} as const;
+const signaturePickerSlots = [
+    {
+        key: 'sig1_prepared_by',
+        label: '1st Signatory - Left',
+    },
+    {
+        key: 'sig2_checked_by',
+        label: '2nd Signatory - Center',
+    },
+    {
+        key: 'sig3_certified_by',
+        label: '3rd Signatory - Right',
+    },
+] as const;
 const analysisStages = [
     'Preprocessing document image',
     'Extracting document features',
@@ -84,7 +132,11 @@ type Props = {
 
 type UploadForm = {
     tor_file: File | null;
+    expected_signatures: ExpectedSignatures;
 };
+
+type SignatureSlot = keyof typeof signaturePersonnel;
+type ExpectedSignatures = Record<SignatureSlot, string>;
 
 interface StepIndicatorProps {
     number: number;
@@ -179,6 +231,50 @@ function UploadArea({
                 className="hidden"
             />
         </label>
+    );
+}
+
+function SignaturePicker({
+    value,
+    onChange,
+}: {
+    value: ExpectedSignatures;
+    onChange: (slot: SignatureSlot, signerId: string) => void;
+}) {
+    return (
+        <div className="flex w-full flex-col overflow-hidden rounded-lg border border-[#fddada]">
+            <div className="flex flex-col gap-1.5 bg-[#ffeaea] p-4">
+                <h3 className="text-[10px] font-bold text-[#9a0000]">
+                    Identify Signatories
+                </h3>
+                <p className="text-[8px] text-[#656565]">
+                    Select the signatories in the footer from left to right
+                </p>
+            </div>
+            <div className="flex flex-col gap-4 border-t border-[#fddada] bg-[#fff9f9] p-4">
+                {signaturePickerSlots.map((slot) => (
+                    <label
+                        key={slot.key}
+                        className="flex flex-col gap-1.5 text-[10px] font-bold text-[#1e1a1a]"
+                    >
+                        <span>{slot.label}</span>
+                        <select
+                            value={value[slot.key]}
+                            onChange={(event) =>
+                                onChange(slot.key, event.currentTarget.value)
+                            }
+                            className="h-10 w-full rounded-md border border-[#cdc9c9] bg-white px-3 text-[10px] font-normal text-[#635858] uppercase transition outline-none focus:border-[#9a0000] focus:ring-2 focus:ring-[#ffeaea]"
+                        >
+                            {signaturePersonnel[slot.key].map((person) => (
+                                <option key={person.id} value={person.id}>
+                                    {person.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                ))}
+            </div>
+        </div>
     );
 }
 
@@ -611,6 +707,7 @@ export default function UploadTor({ latestAnalysis }: Props) {
     const { data, setData, post, processing, errors, clearErrors, reset } =
         useForm<UploadForm>({
             tor_file: null,
+            expected_signatures: { ...defaultExpectedSignatures },
         });
 
     const clearStageTimers = () => {
@@ -820,6 +917,17 @@ export default function UploadTor({ latestAnalysis }: Props) {
         });
     };
 
+    const handleExpectedSignatureChange = (
+        slot: SignatureSlot,
+        signerId: string,
+    ) => {
+        setData('expected_signatures', {
+            ...data.expected_signatures,
+            [slot]: signerId,
+        });
+        clearErrors(`expected_signatures.${slot}`);
+    };
+
     const handleReset = () => {
         clearStageTimers();
         setCurrentStep(1);
@@ -827,7 +935,10 @@ export default function UploadTor({ latestAnalysis }: Props) {
         setClientError(null);
         setCameraError(null);
         stopCamera();
-        setData('tor_file', null);
+        setData({
+            tor_file: null,
+            expected_signatures: { ...defaultExpectedSignatures },
+        });
     };
 
     return (
@@ -987,12 +1098,32 @@ export default function UploadTor({ latestAnalysis }: Props) {
                             </div>
                         )}
 
+                        <SignaturePicker
+                            value={data.expected_signatures}
+                            onChange={handleExpectedSignatureChange}
+                        />
+
                         {clientError && (
                             <p className="text-xs text-[#9a0000]">
                                 {clientError}
                             </p>
                         )}
                         <InputError message={errors.tor_file} />
+                        <InputError
+                            message={
+                                errors['expected_signatures.sig1_prepared_by']
+                            }
+                        />
+                        <InputError
+                            message={
+                                errors['expected_signatures.sig2_checked_by']
+                            }
+                        />
+                        <InputError
+                            message={
+                                errors['expected_signatures.sig3_certified_by']
+                            }
+                        />
 
                         {currentStep === 2 && (
                             <div className="rounded-lg border border-[#e2ddd8] bg-[#f9f9f9] p-4">

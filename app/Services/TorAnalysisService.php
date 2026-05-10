@@ -27,18 +27,22 @@ class TorAnalysisService
      *     error: string|null
      * }
      */
-    public function analyze(string $storedPath): array
+    /**
+     * @param  array<string, string>  $expectedSignatures
+     */
+    public function analyze(string $storedPath, array $expectedSignatures = []): array
     {
         $externalId = (string) Str::uuid();
-        $payload = $this->sendToModelService($storedPath, $externalId);
+        $payload = $this->sendToModelService($storedPath, $externalId, $expectedSignatures);
 
         return $this->mapResponse($payload, $externalId);
     }
 
     /**
+     * @param  array<string, string>  $expectedSignatures
      * @return array<string, mixed>
      */
-    private function sendToModelService(string $storedPath, string $externalId): array
+    private function sendToModelService(string $storedPath, string $externalId, array $expectedSignatures): array
     {
         $path = Storage::path($storedPath);
         $stream = fopen($path, 'r');
@@ -56,6 +60,7 @@ class TorAnalysisService
                 ->post($this->modelEndpoint(), [
                     'external_id' => $externalId,
                     'callback_url' => '',
+                    'expected_signatures' => json_encode($expectedSignatures, JSON_THROW_ON_ERROR),
                 ]);
         } catch (ConnectionException $exception) {
             throw new RuntimeException(__('The TOR model service could not be reached. Please try again later.'), previous: $exception);

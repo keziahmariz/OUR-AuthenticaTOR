@@ -4,9 +4,24 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UploadTorAnalysisRequest extends FormRequest
 {
+    private const PreparedAndCheckedSignatories = [
+        'abadia',
+        'arabejo',
+        'calunsag',
+        'corotan',
+        'dagohoy',
+        'kusain',
+        'llerin',
+        'mamac',
+        'mansueto',
+        'munoz',
+        'vistar',
+    ];
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -24,6 +39,10 @@ class UploadTorAnalysisRequest extends FormRequest
     {
         return [
             'tor_file' => ['required', 'file', 'mimetypes:image/jpeg,image/png', 'max:10240'],
+            'expected_signatures' => ['required', 'array'],
+            'expected_signatures.sig1_prepared_by' => ['required', 'string', Rule::in(self::PreparedAndCheckedSignatories)],
+            'expected_signatures.sig2_checked_by' => ['required', 'string', Rule::in(self::PreparedAndCheckedSignatories)],
+            'expected_signatures.sig3_certified_by' => ['required', 'string', Rule::in(['maniscan'])],
         ];
     }
 }

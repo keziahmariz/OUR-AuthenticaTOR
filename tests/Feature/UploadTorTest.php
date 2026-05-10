@@ -281,6 +281,7 @@ test('authenticated users can analyze a valid tor image', function () {
     $this->actingAs($user)
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
+            'expected_signatures' => expectedSignaturesPayload(),
         ])
         ->assertRedirect(route('uploadTor'));
 
@@ -306,6 +307,15 @@ test('authenticated users can analyze a valid tor image', function () {
     Http::assertSent(fn ($request): bool => $request->url() === 'http://127.0.0.1:8001/api/images/'
         && $request->hasHeader('X-TOR-Service-Token', 'testing-token'));
 });
+
+function expectedSignaturesPayload(): array
+{
+    return [
+        'sig1_prepared_by' => 'abadia',
+        'sig2_checked_by' => 'arabejo',
+        'sig3_certified_by' => 'maniscan',
+    ];
+}
 
 function signatureVerificationPayload(): array
 {
@@ -354,6 +364,7 @@ test('tor analysis stores no result when django returns a failed analysis', func
         ->from(route('uploadTor'))
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
+            'expected_signatures' => expectedSignaturesPayload(),
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');
@@ -374,6 +385,7 @@ test('tor analysis stores no result when django cannot be reached', function () 
         ->from(route('uploadTor'))
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
+            'expected_signatures' => expectedSignaturesPayload(),
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');
@@ -390,6 +402,7 @@ test('tor analysis rejects invalid file types', function () {
         ->from(route('uploadTor'))
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
+            'expected_signatures' => expectedSignaturesPayload(),
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');
@@ -405,6 +418,7 @@ test('tor analysis rejects images larger than ten megabytes', function () {
         ->from(route('uploadTor'))
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
+            'expected_signatures' => expectedSignaturesPayload(),
         ])
         ->assertRedirect(route('uploadTor'))
         ->assertSessionHasErrors('tor_file');
