@@ -38,6 +38,10 @@ const modelOptions = [
     },
 ] as const;
 const defaultModelKey = 'efficientnet_b0' as const;
+const modelThresholds: Record<ModelKey, number> = {
+    efficientnet_b0: 0.38,
+    resnet50_mean: 0.34,
+};
 const signaturePersonnel = {
     sig1_prepared_by: [
         { id: 'abadia', name: 'Judito T. Abadia' },
@@ -106,6 +110,7 @@ type TorAnalysisResult = {
 type ModelResult = {
     label?: string | null;
     score?: number | null;
+    model_threshold?: number | null;
     roi_scores?: Record<string, number> | null;
     top_roi?: string | null;
     ocr?: OcrResult | null;
@@ -533,10 +538,16 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
 
 function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
     const roiScores = result.model_result?.roi_scores ?? {};
+    const threshold = clampScore(
+        result.model_result?.model_threshold ??
+            modelThresholds[result.model_key] ??
+            modelThresholds[defaultModelKey],
+    );
+    const thresholdLineTop = `${Math.max(0, Math.min(100, (1 - threshold) * 100))}px`;
     const rows = ['header', 'body', 'footer'].map((region) => {
         const score = clampScore(roiScores[region] ?? 0);
-        const isForged = score >= 0.6;
-        const excess = Math.max(0, score - 0.6);
+        const isForged = score >= threshold;
+        const excess = Math.max(0, score - threshold);
 
         return {
             region,
@@ -600,9 +611,12 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
                         <span>BODY</span>
                         <span>FOOTER</span>
                     </div>
-                    <div className="absolute top-[48px] h-px w-full border-t border-dashed border-[#9a0000]" />
+                    <div
+                        className="absolute h-px w-full border-t border-dashed border-[#9a0000]"
+                        style={{ top: thresholdLineTop }}
+                    />
                     <span className="absolute top-3 right-0 font-mono text-[6px] text-black">
-                        threshold: 0.6
+                        threshold: {threshold.toFixed(2)}
                     </span>
                 </div>
             </div>
