@@ -1,11 +1,13 @@
 import { Head, useForm } from '@inertiajs/react';
 import {
     AlertTriangle,
+    Camera,
     CheckCircle2,
     FileImage,
     Frown,
     RotateCcw,
     Search,
+    X,
     Upload,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -265,11 +267,15 @@ export default function UploadTor({ latestAnalysis }: Props) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [clientError, setClientError] = useState<string | null>(null);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+    const [cameraError, setCameraError] = useState<string | null>(null);
     const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(
         latestAnalysis ? 3 : 1,
     );
     const [analysisStageIndex, setAnalysisStageIndex] = useState(0);
     const stageTimers = useRef<number[]>([]);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     const { data, setData, post, processing, errors, clearErrors, reset } =
         useForm<UploadForm>({
@@ -289,6 +295,26 @@ export default function UploadTor({ latestAnalysis }: Props) {
         [],
     );
 
+    useEffect(() => {
+        if (!cameraStream) {
+            return;
+        }
+
+        const video = videoRef.current;
+
+        if (video) {
+            video.srcObject = cameraStream;
+        }
+
+        return () => {
+            cameraStream.getTracks().forEach((track) => track.stop());
+
+            if (video) {
+                video.srcObject = null;
+            }
+        };
+    }, [cameraStream]);
+
     const validateFile = (file: File): string | null => {
         if (!allowedMimeTypes.includes(file.type)) {
             return 'Upload a JPG or PNG image.';
@@ -299,6 +325,10 @@ export default function UploadTor({ latestAnalysis }: Props) {
         }
 
         return null;
+    };
+
+    const stopCamera = () => {
+        setCameraStream(null);
     };
 
     const acceptFile = (file: File) => {
@@ -315,6 +345,8 @@ export default function UploadTor({ latestAnalysis }: Props) {
         setSelectedFile(file);
         setData('tor_file', file);
         setClientError(null);
+        setCameraError(null);
+        stopCamera();
         clearErrors('tor_file');
         setCurrentStep(1);
     };
@@ -346,6 +378,72 @@ export default function UploadTor({ latestAnalysis }: Props) {
         if (file) {
             acceptFile(file);
         }
+    };
+
+    const handleStartCamera = async () => {
+        setCameraError(null);
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setCameraError('Camera capture is not supported in this browser.');
+
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: {
+                    facingMode: { ideal: 'environment' },
+                },
+            });
+
+            setCameraStream(stream);
+        } catch {
+            setCameraError(
+                'Camera access was blocked. Allow camera permission and try again.',
+            );
+        }
+    };
+
+    const handleCapturePhoto = () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+
+        if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+            setCameraError('Camera is still starting. Try again in a moment.');
+
+            return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const context = canvas.getContext('2d');
+
+        if (!context) {
+            setCameraError('Could not capture the camera image.');
+
+            return;
+        }
+
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+            (blob) => {
+                if (!blob) {
+                    setCameraError('Could not save the captured image.');
+
+                    return;
+                }
+
+                acceptFile(
+                    new File([blob], `tor-camera-${Date.now()}.jpg`, {
+                        type: 'image/jpeg',
+                    }),
+                );
+            },
+            'image/jpeg',
+            0.92,
+        );
     };
 
     const startStageProgress = () => {
@@ -396,6 +494,8 @@ export default function UploadTor({ latestAnalysis }: Props) {
         setCurrentStep(1);
         setSelectedFile(null);
         setClientError(null);
+        setCameraError(null);
+        stopCamera();
         setData('tor_file', null);
     };
 
@@ -453,13 +553,88 @@ export default function UploadTor({ latestAnalysis }: Props) {
                         </div>
 
                         {!selectedFile ? (
-                            <UploadArea
-                                isDragOver={isDragOver}
-                                onDragOver={handleDragOver}
-                                onDragLeave={handleDragLeave}
-                                onDrop={handleDrop}
-                                onChange={handleFileChange}
-                            />
+                            <div className="flex flex-col gap-3">
+                                <UploadArea
+                                    isDragOver={isDragOver}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    onChange={handleFileChange}
+                                />
+
+                                <div className="flex flex-col gap-3 rounded-lg border border-[#e2ddd8] bg-[#fbfaf9] p-4">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f5eaea] text-[#9a0000]">
+                                                <Camera className="h-5 w-5" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="text-xs font-bold text-[#393939]">
+                                                    Take a photo
+                                                </h3>
+                                                <p className="text-[10px] text-[#7b7b7b]">
+                                                    Use the device camera to
+                                                    capture the TOR directly.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {cameraStream ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={stopCamera}
+                                                className="gap-2"
+                                            >
+                                                <X className="h-4 w-4" />
+                                                Stop camera
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={handleStartCamera}
+                                                className="gap-2"
+                                            >
+                                                <Camera className="h-4 w-4" />
+                                                Enable camera
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {cameraStream && (
+                                        <div className="flex flex-col gap-3">
+                                            <video
+                                                ref={videoRef}
+                                                autoPlay
+                                                muted
+                                                playsInline
+                                                className="max-h-[28rem] w-full rounded-md border border-[#d3d3d3] bg-black object-contain"
+                                            />
+                                            <Button
+                                                type="button"
+                                                onClick={handleCapturePhoto}
+                                                className="gap-2 bg-[#6f0000] text-white hover:bg-[#5a0000]"
+                                            >
+                                                <Camera className="h-4 w-4" />
+                                                Capture photo
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {cameraError && (
+                                        <p className="text-xs text-[#9a0000]">
+                                            {cameraError}
+                                        </p>
+                                    )}
+
+                                    <canvas
+                                        ref={canvasRef}
+                                        className="hidden"
+                                        aria-hidden="true"
+                                    />
+                                </div>
+                            </div>
                         ) : (
                             <div className="rounded-lg border border-[#d3d3d3] bg-[#f9f9f9] p-4">
                                 <div className="flex items-center gap-2">
