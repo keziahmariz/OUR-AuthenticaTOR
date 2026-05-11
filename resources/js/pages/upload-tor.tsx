@@ -67,6 +67,7 @@ type ModelResult = {
     threshold?: number | null;
     roi_scores?: Record<string, RoiScoreValue> | null;
     top_roi?: string | null;
+    top_roi_score?: number | null;
     ocr?: OcrResult | null;
     degree_extraction?: OcrResult | null;
 };
@@ -356,12 +357,22 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
     const ocrResult =
         result.model_result?.degree_extraction ?? result.model_result?.ocr;
     const isAuthentic = result.verdict === 'Likely Authentic';
+    const roiScores = result.model_result?.roi_scores ?? {};
+    const documentScore = clampScore(
+        result.model_result?.score ?? result.forgery_confidence / 100,
+    );
+    const authenticitySupport = clampScore(1 - documentScore);
+    const topRoi = result.model_result?.top_roi ?? null;
+    const topRoiScore = clampScore(
+        result.model_result?.top_roi_score ??
+            (topRoi ? roiScoreValue(roiScores[topRoi] ?? 0) : 0),
+    );
 
     return (
         <div className="flex flex-col gap-3">
             <SectionBox
-                title="Verdict & Confidence"
-                description="View results of deep learning model authentication."
+                title="Verdict & Document Suspiciousness"
+                description="The whole-document score comes from the highest 5 patch scores across header, body, and footer."
             >
                 <div className="flex flex-col items-center gap-4">
                     {result.preprocessed_image_url ? (
@@ -430,15 +441,35 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
                     </div>
 
                     <ConfidenceBar
-                        label="Forgery confidence"
-                        value={result.forgery_confidence}
+                        label="Document suspiciousness"
+                        value={documentScore * 100}
                         color="#9a0000"
                     />
                     <ConfidenceBar
-                        label="Authenticity score"
-                        value={result.authenticity_score}
+                        label="Authenticity support"
+                        value={authenticitySupport * 100}
                         color="#1b622f"
                     />
+
+                    <div className="flex w-full flex-col gap-2 rounded-lg border border-[#e2ddd8] bg-white p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[8px] font-bold text-[#897b7b] uppercase">
+                                    Most suspicious region
+                                </span>
+                                <span className="text-[10px] font-bold text-[#393939]">
+                                    {topRoi ? topRoi.replaceAll('_', ' ') : 'Unavailable'}
+                                </span>
+                            </div>
+                            <span className="font-mono text-sm font-bold text-[#9a0000]">
+                                {(topRoiScore * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                        <p className="text-[8px] leading-snug text-[#919191]">
+                            This is the ROI with the highest top5 mean, so it is
+                            the strongest contributor to the document score.
+                        </p>
+                    </div>
                 </div>
             </SectionBox>
 
@@ -472,6 +503,7 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
     const PLOT_HEIGHT = 100;
 
     const roiScores = result.model_result?.roi_scores ?? {};
+    const topRoi = result.model_result?.top_roi ?? null;
     const threshold = clampScore(
         result.model_result?.model_threshold ??
             result.model_result?.threshold ??
@@ -491,6 +523,7 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
             score,
             isForged,
             excess,
+            isTopRoi: region === topRoi,
         };
     });
 
@@ -505,6 +538,17 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
 
     return (
         <div className="flex flex-col gap-7">
+            <div className="flex flex-col gap-2 rounded-lg border border-[#e2ddd8] bg-[#fbfaf9] p-4 text-[10px] text-[#656565]">
+                <span className="text-[8px] font-bold uppercase text-[#897b7b]">
+                    ROI explanation
+                </span>
+                <span>
+                    The region with the highest top5 mean is the most suspicious
+                    part of the TOR and the strongest clue for the whole-document
+                    score.
+                </span>
+            </div>
+
             <div className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-start">
                 <div className="flex items-start gap-1.5">
                     <div className="flex h-[100px] flex-col justify-between text-center font-mono text-[8px] text-[#4d4d4d]">
@@ -574,8 +618,8 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
             <div className="overflow-hidden rounded border border-[#d3d3d3] text-[8px]">
                 <div className="grid grid-cols-[52px_78px_minmax(0,1fr)] bg-[#e9e9e9] text-[6px] font-bold text-[#897b7b]">
                     <div className="px-2 py-1">REGION</div>
-                    <div className="px-2 py-1">VERDICT</div>
-                    <div className="px-2 py-1">FLAG</div>
+                    <div className="px-2 py-1">THRESHOLD</div>
+                    <div className="px-2 py-1">INSIGHT</div>
                 </div>
 
                 {rows.map((row) => (
@@ -592,9 +636,11 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
                         </div>
 
                         <div className="px-2 py-1 text-[#897b7b]">
-                            {row.isForged
-                                ? `Suspicious activities found in region. Exceeds threshold by ${row.excess.toFixed(3)}.`
-                                : 'No suspicious region activity above threshold.'}
+                            {row.isTopRoi
+                                ? `Most suspicious region. Top5 mean is ${row.score.toFixed(3)}.`
+                                : row.isForged
+                                  ? `Above threshold by ${row.excess.toFixed(3)}.`
+                                  : 'Below threshold for the document score.'}
                         </div>
                     </div>
                 ))}
@@ -628,7 +674,7 @@ function VerdictBadge({ isForged }: { isForged: boolean }) {
                     : 'border-[#c5fdad] bg-[#e5ffd9] text-[#58983c]'
             }`}
         >
-            {isForged ? 'Likely Forged' : 'Likely Genuine'}
+            {isForged ? 'Above threshold' : 'Below threshold'}
         </span>
     );
 }

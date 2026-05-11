@@ -197,14 +197,17 @@ class TorAnalysisService
     {
         $roiScores = $this->arrayValue($result, 'roi_scores');
         $patchCounts = $this->arrayValue($preprocessing, 'patch_counts');
+        $documentSuspiciousness = $this->floatValue($result, 'score') * 100;
+        $authenticitySupport = 100 - $documentSuspiciousness;
 
         return array_values(array_filter([
-            sprintf('Document forgery score: %.1f%%', $this->floatValue($result, 'score') * 100),
+            sprintf('Document suspiciousness: %.1f%%', $documentSuspiciousness),
+            sprintf('Authenticity support: %.1f%%', $authenticitySupport),
             $this->stringValue($result, 'top_roi') !== ''
-                ? sprintf('Highest-scoring region: %s', Str::headline($this->stringValue($result, 'top_roi')))
+                ? sprintf('Most suspicious region: %s', Str::headline($this->stringValue($result, 'top_roi')))
                 : null,
             $roiScores !== []
-                ? 'ROI scores: '.$this->formatPercentMap($roiScores)
+                ? 'ROI top5 means: '.$this->formatPercentMap($roiScores)
                 : null,
             $this->stringValue($preprocessing, 'method') !== ''
                 ? sprintf('Preprocessing method: %s', $this->stringValue($preprocessing, 'method'))

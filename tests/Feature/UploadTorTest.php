@@ -51,7 +51,7 @@ test('upload tor page exposes a laravel proxy url for the latest preprocessed im
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
-        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
         'preprocessing' => ['method' => 'brightness'],
@@ -81,7 +81,7 @@ test('upload tor page exposes signature verification with proxied artifact urls'
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
-        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => [
             'label' => 'fake',
@@ -129,7 +129,7 @@ test('upload tor page refreshes stored OCR program matches from active programs'
         'forgery_confidence' => 12.3,
         'authenticity_score' => 87.7,
         'verdict' => 'Likely Authentic',
-        'detected_indicators' => ['Document forgery score: 12.3%'],
+        'detected_indicators' => ['Document suspiciousness: 12.3%'],
         'gradcam_attention_map_url' => null,
         'model_result' => [
             'label' => 'real',
@@ -177,7 +177,7 @@ test('authenticated users can view their proxied preprocessed image', function (
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
-        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
         'preprocessing' => ['method' => 'brightness'],
@@ -202,7 +202,7 @@ test('authenticated users cannot view another users preprocessed image', functio
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
-        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
         'preprocessing' => ['method' => 'brightness'],
@@ -229,7 +229,7 @@ test('authenticated users can view their proxied signature artifact', function (
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
-        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => null,
         'model_result' => [
             'signature_verification' => signatureVerificationPayload(),
@@ -258,7 +258,7 @@ test('authenticated users cannot view unlisted signature artifact urls', functio
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
-        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => null,
         'model_result' => [
             'signature_verification' => signatureVerificationPayload(),
@@ -286,7 +286,7 @@ test('authenticated users cannot view another users signature artifact', functio
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
         'verdict' => 'Likely Forged',
-        'detected_indicators' => ['Document forgery score: 93.3%'],
+        'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => null,
         'model_result' => [
             'signature_verification' => signatureVerificationPayload(),
@@ -374,12 +374,15 @@ test('authenticated users can analyze a valid tor image', function () {
         ->forgery_confidence->toBe(93.3)
         ->authenticity_score->toBe(6.7)
         ->verdict->toBe('Likely Forged')
-        ->detected_indicators->toHaveCount(6)
+        ->detected_indicators->toHaveCount(7)
         ->gradcam_attention_map_url->toBe('http://127.0.0.1:8001/media/preprocessed/tor.jpg')
         ->model_result->toMatchArray(['label' => 'fake', 'score' => 0.933])
         ->preprocessing->toMatchArray(['method' => 'brightness', 'skew_status' => 'flat']);
 
-    expect($analysis->detected_indicators[2])->toContain('Footer 93.3%');
+    expect($analysis->detected_indicators[0])->toBe('Document suspiciousness: 93.3%');
+    expect($analysis->detected_indicators[1])->toBe('Authenticity support: 6.7%');
+    expect($analysis->detected_indicators[2])->toBe('Most suspicious region: Footer');
+    expect($analysis->detected_indicators[3])->toContain('ROI top5 means');
     expect($analysis->model_result['degree_extraction']['degree'])->toBe('Bachelor of Science in Information Technology');
     expect($analysis->model_result['degree_extraction']['program_match']['matched'])->toBeTrue();
     expect($analysis->model_result['degree_extraction']['program_match']['program']['degree'])->toBe('Bachelor of Science in Information Technology');
