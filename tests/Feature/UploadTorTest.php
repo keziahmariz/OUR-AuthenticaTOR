@@ -270,8 +270,7 @@ test('authenticated users can analyze a valid tor image', function () {
         return Http::response([
             'id' => 11,
             'job_id' => 11,
-            'model_key' => 'resnet50_mean',
-            'model_label' => 'ResNet50 mean aggregation',
+            'model_key' => 'efficientnet_b0_topk',
             'external_id' => 'ignored-service-echo',
             'status' => 'complete',
             'preprocessed_image_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
@@ -282,7 +281,13 @@ test('authenticated users can analyze a valid tor image', function () {
                 'success' => true,
                 'label' => 'fake',
                 'score' => 0.933,
-                'roi_scores' => ['header' => 0.2, 'body' => 0.4, 'footer' => 0.933],
+                'threshold' => 0.8,
+                'aggregation' => 'topk_mean',
+                'roi_scores' => [
+                    'header' => ['n_patches' => 1, 'mean' => 0.2, 'max' => 0.2, 'top5_mean' => 0.2],
+                    'body' => ['n_patches' => 2, 'mean' => 0.4, 'max' => 0.45, 'top5_mean' => 0.4],
+                    'footer' => ['n_patches' => 3, 'mean' => 0.8, 'max' => 0.98, 'top5_mean' => 0.933],
+                ],
                 'top_roi' => 'footer',
                 'degree_extraction' => degreeExtractionPayload(),
                 'signature_verification' => signatureVerificationPayload(),
@@ -303,7 +308,7 @@ test('authenticated users can analyze a valid tor image', function () {
         ->post(route('uploadTor.analyze'), [
             'tor_file' => $file,
             'expected_signatures' => expectedSignaturesPayload(),
-            'model_key' => 'resnet50_mean',
+            'model_key' => 'efficientnet_b0_topk',
         ])
         ->assertRedirect(route('uploadTor'));
 
@@ -314,8 +319,8 @@ test('authenticated users can analyze a valid tor image', function () {
     expect($analysis)
         ->external_id->not->toBeEmpty()
         ->django_job_id->toBe(11)
-        ->model_key->toBe('resnet50_mean')
-        ->model_label->toBe('ResNet50 mean aggregation')
+        ->model_key->toBe('efficientnet_b0_topk')
+        ->model_label->toBe('EfficientNet-B0 top-k aggregation')
         ->forgery_confidence->toBe(93.3)
         ->authenticity_score->toBe(6.7)
         ->verdict->toBe('Likely Forged')
@@ -324,6 +329,7 @@ test('authenticated users can analyze a valid tor image', function () {
         ->model_result->toMatchArray(['label' => 'fake', 'score' => 0.933])
         ->preprocessing->toMatchArray(['method' => 'brightness', 'skew_status' => 'flat']);
 
+    expect($analysis->detected_indicators[2])->toContain('Footer 93.3%');
     expect($analysis->model_result['degree_extraction']['degree'])->toBe('Bachelor of Science in Information Technology');
     expect($analysis->model_result['degree_extraction']['program_match']['matched'])->toBeTrue();
     expect($analysis->model_result['degree_extraction']['program_match']['program']['degree'])->toBe('Bachelor of Science in Information Technology');
@@ -335,7 +341,7 @@ test('authenticated users can analyze a valid tor image', function () {
         && $request->hasHeader('X-TOR-Service-Token', 'testing-token'));
     expect($modelRequestBody)
         ->toContain('name="model_key"')
-        ->toContain('resnet50_mean');
+        ->toContain('efficientnet_b0_topk');
 });
 
 test('tor analysis rejects invalid model keys', function () {

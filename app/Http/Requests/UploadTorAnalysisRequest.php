@@ -12,6 +12,7 @@ class UploadTorAnalysisRequest extends FormRequest
 {
     private const ModelKeys = [
         'efficientnet_b0',
+        'efficientnet_b0_topk',
         'resnet50_mean',
     ];
 

@@ -11,6 +11,12 @@ use RuntimeException;
 
 class TorAnalysisService
 {
+    private const ModelLabels = [
+        'efficientnet_b0' => 'EfficientNet-B0 baseline',
+        'efficientnet_b0_topk' => 'EfficientNet-B0 top-k aggregation',
+        'resnet50_mean' => 'ResNet50 mean aggregation',
+    ];
+
     public function __construct(private AcademicProgramMatcher $academicProgramMatcher) {}
 
     /**
@@ -137,11 +143,16 @@ class TorAnalysisService
             'patch_counts' => $this->arrayValue($payload, 'patch_counts'),
         ];
 
+        $modelKey = $this->stringValue($payload, 'model_key') ?: $this->stringValue($result, 'model_key') ?: 'efficientnet_b0';
+        $modelLabel = $this->stringValue($payload, 'model_label')
+            ?: $this->stringValue($result, 'model_label')
+            ?: (self::ModelLabels[$modelKey] ?? self::ModelLabels['efficientnet_b0']);
+
         return [
             'external_id' => $externalId,
             'django_job_id' => $this->intValue($payload, 'job_id'),
-            'model_key' => $this->stringValue($payload, 'model_key') ?: $this->stringValue($result, 'model_key') ?: 'efficientnet_b0',
-            'model_label' => $this->stringValue($payload, 'model_label') ?: $this->stringValue($result, 'model_label') ?: 'EfficientNet-B0 baseline',
+            'model_key' => $modelKey,
+            'model_label' => $modelLabel,
             'forgery_confidence' => $forgeryConfidence,
             'authenticity_score' => $authenticityScore,
             'verdict' => $label === 'fake' ? 'Likely Forged' : 'Likely Authentic',
@@ -215,7 +226,7 @@ class TorAnalysisService
     private function formatPercentMap(array $values): string
     {
         return collect($values)
-            ->map(fn (mixed $value, string $key): string => sprintf('%s %.1f%%', Str::headline($key), $this->numericValue($value) * 100))
+            ->map(fn (mixed $value, string $key): string => sprintf('%s %.1f%%', Str::headline($key), $this->roiScoreValue($value) * 100))
             ->implode(', ');
     }
 
@@ -269,6 +280,31 @@ class TorAnalysisService
     private function numericValue(mixed $value): float
     {
         return is_numeric($value) ? (float) $value : 0.0;
+    }
+
+    private function roiScoreValue(mixed $value): float
+    {
+        if (! is_array($value)) {
+            return $this->numericValue($value);
+        }
+
+        if (array_key_exists('top5_mean', $value)) {
+            return $this->numericValue($value['top5_mean']);
+        }
+
+        foreach ($value as $key => $score) {
+            if (is_string($key) && preg_match('/^top\d+_mean$/', $key) === 1) {
+                return $this->numericValue($score);
+            }
+        }
+
+        foreach (['mean', 'max'] as $key) {
+            if (array_key_exists($key, $value)) {
+                return $this->numericValue($value[$key]);
+            }
+        }
+
+        return 0.0;
     }
 
     /**

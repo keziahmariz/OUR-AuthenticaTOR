@@ -27,6 +27,11 @@ const modelOptions = [
         description: 'Current production detector',
     },
     {
+        key: 'efficientnet_b0_topk',
+        label: 'EfficientNet-B0 top-k aggregation',
+        description: 'Frozen EfficientNet-B0 with top-5 patch aggregation',
+    },
+    {
         key: 'resnet50_mean',
         label: 'ResNet50 mean aggregation',
         description: 'New checkpoint, same preprocessing',
@@ -35,6 +40,7 @@ const modelOptions = [
 const defaultModelKey = 'efficientnet_b0' as const;
 const modelThresholds: Record<ModelKey, number> = {
     efficientnet_b0: 0.38,
+    efficientnet_b0_topk: 0.8,
     resnet50_mean: 0.34,
 };
 const signaturePickerSlots = [
@@ -77,11 +83,21 @@ type ModelResult = {
     label?: string | null;
     score?: number | null;
     model_threshold?: number | null;
-    roi_scores?: Record<string, number> | null;
+    threshold?: number | null;
+    roi_scores?: Record<string, RoiScoreValue> | null;
     top_roi?: string | null;
     ocr?: OcrResult | null;
     degree_extraction?: OcrResult | null;
 };
+
+type RoiScoreValue =
+    | number
+    | {
+          n_patches?: number;
+          mean?: number;
+          max?: number;
+          [key: string]: number | undefined;
+      };
 
 type OcrResult = {
     degree?: string | null;
@@ -533,6 +549,7 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
     const roiScores = result.model_result?.roi_scores ?? {};
     const threshold = clampScore(
         result.model_result?.model_threshold ??
+            result.model_result?.threshold ??
             modelThresholds[result.model_key] ??
             modelThresholds[defaultModelKey],
     );
@@ -540,7 +557,7 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
     const thresholdLineTop = `${(1 - threshold) * PLOT_HEIGHT}px`;
 
     const rows = ['header', 'body', 'footer'].map((region) => {
-        const score = clampScore(roiScores[region] ?? 0);
+        const score = clampScore(roiScoreValue(roiScores[region] ?? 0));
         const isForged = score >= threshold;
         const excess = Math.max(0, score - threshold);
 
@@ -858,6 +875,34 @@ function OcrDegreePanel({ ocr }: { ocr?: OcrResult | null }) {
 
 function clampScore(value: number) {
     return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+}
+
+function roiScoreValue(value: RoiScoreValue) {
+    if (typeof value === 'number') {
+        return value;
+    }
+
+    if (Number.isFinite(value.top5_mean)) {
+        return value.top5_mean ?? 0;
+    }
+
+    const topKMeanKey = Object.keys(value).find((key) =>
+        /^top\d+_mean$/.test(key),
+    );
+
+    if (topKMeanKey && Number.isFinite(value[topKMeanKey])) {
+        return value[topKMeanKey] ?? 0;
+    }
+
+    if (Number.isFinite(value.mean)) {
+        return value.mean ?? 0;
+    }
+
+    if (Number.isFinite(value.max)) {
+        return value.max ?? 0;
+    }
+
+    return 0;
 }
 
 export default function UploadTor({
