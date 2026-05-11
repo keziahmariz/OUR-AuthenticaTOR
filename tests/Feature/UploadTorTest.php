@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AcademicProgram;
 use App\Models\TorAnalysisResult;
 use App\Models\User;
 use Database\Seeders\AcademicProgramSeeder;
@@ -108,6 +109,55 @@ test('upload tor page exposes signature verification with proxied artifact urls'
                         'url' => 'http://127.0.0.1:8001/media/signatures/job/sig1_prepared_by_band.png',
                     ]),
                 ),
+        );
+});
+
+test('upload tor page refreshes stored OCR program matches from active programs', function () {
+    $this->withoutVite();
+
+    AcademicProgram::factory()->create([
+        'degree' => 'Master of Science in Biology',
+        'specialization' => null,
+        'normalized_degree' => AcademicProgram::normalizeDegree('Master of Science in Biology'),
+    ]);
+
+    $user = User::factory()->create();
+    $analysis = TorAnalysisResult::query()->create([
+        'user_id' => $user->id,
+        'external_id' => fake()->uuid(),
+        'django_job_id' => 11,
+        'forgery_confidence' => 12.3,
+        'authenticity_score' => 87.7,
+        'verdict' => 'Likely Authentic',
+        'detected_indicators' => ['Document forgery score: 12.3%'],
+        'gradcam_attention_map_url' => null,
+        'model_result' => [
+            'label' => 'real',
+            'score' => 0.123,
+            'degree_extraction' => [
+                ...degreeExtractionPayload(),
+                'degree' => 'MASTER OF SCIENCE IN BIOLOGY (tSBlo)',
+                'title' => 'MASTER OF SCIENCE IN BIOLOGY (tSBlo)',
+                'course' => 'MASTER OF SCIENCE IN BIOLOGY (tSBlo)',
+                'program_match' => [
+                    'matched' => false,
+                    'normalized_degree' => 'master of science in biology tsblo',
+                    'program' => null,
+                ],
+            ],
+        ],
+        'preprocessing' => ['method' => 'brightness'],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('uploadTor'))
+        ->assertOk()
+        ->assertInertia(
+            fn (Assert $page) => $page
+                ->component('upload-tor')
+                ->where('latestAnalysis.id', $analysis->id)
+                ->where('latestAnalysis.model_result.degree_extraction.program_match.matched', true)
+                ->where('latestAnalysis.model_result.degree_extraction.program_match.program.degree', 'Master of Science in Biology'),
         );
 });
 

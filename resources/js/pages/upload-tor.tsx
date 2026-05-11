@@ -846,7 +846,9 @@ function OcrDegreePanel({ ocr }: { ocr?: OcrResult | null }) {
     const message =
         hasMatch && ocr?.program_match?.program
             ? `Matches ${ocr.program_match.program.display_name}.`
-            : (ocr?.message ?? 'Does not match any USeP Program List.');
+            : wasChecked
+              ? 'Does not match any USeP Program List.'
+              : (ocr?.message ?? 'Program match was not checked.');
 
     return (
         <div className="flex flex-col gap-3 rounded border border-[#cdc9c9] bg-[#f5f5f5] p-3">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UploadTorAnalysisRequest;
 use App\Models\SignaturePersonnel;
 use App\Models\TorAnalysisResult;
+use App\Services\AcademicProgramMatcher;
 use App\Services\TorAnalysisService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,8 @@ use RuntimeException;
 
 class UploadTorController extends Controller
 {
+    public function __construct(private AcademicProgramMatcher $academicProgramMatcher) {}
+
     /**
      * Show the TOR upload and analysis workflow.
      */
@@ -101,13 +104,51 @@ class UploadTorController extends Controller
      */
     private function presentAnalysis(TorAnalysisResult $analysis): array
     {
+        $modelResult = $this->modelResultWithProgramMatch($analysis);
+
         return [
             ...$analysis->toArray(),
+            'model_result' => $modelResult,
             'preprocessed_image_url' => $analysis->gradcam_attention_map_url === null
                 ? null
                 : route('uploadTor.preprocessedImage', $analysis),
             'signature_verification' => $this->signatureVerificationFor($analysis),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function modelResultWithProgramMatch(TorAnalysisResult $analysis): ?array
+    {
+        $modelResult = $analysis->model_result;
+
+        if (! is_array($modelResult)) {
+            return null;
+        }
+
+        $degreeExtractionKey = is_array($modelResult['degree_extraction'] ?? null)
+            ? 'degree_extraction'
+            : (is_array($modelResult['ocr'] ?? null) ? 'ocr' : null);
+
+        if ($degreeExtractionKey === null) {
+            return $modelResult;
+        }
+
+        /** @var array<string, mixed> $degreeExtraction */
+        $degreeExtraction = $modelResult[$degreeExtractionKey];
+        $degree = $this->stringValue($degreeExtraction, 'degree')
+            ?: $this->stringValue($degreeExtraction, 'course')
+            ?: $this->stringValue($degreeExtraction, 'title');
+
+        $degreeExtraction['program_match'] = $this->academicProgramMatcher->match($degree);
+        $modelResult[$degreeExtractionKey] = $degreeExtraction;
+
+        if ($degreeExtractionKey === 'ocr') {
+            $modelResult['degree_extraction'] = $degreeExtraction;
+        }
+
+        return $modelResult;
     }
 
     /**
@@ -225,5 +266,15 @@ class UploadTorController extends Controller
         return response($response->body(), 200)
             ->header('Content-Type', $response->header('Content-Type') ?: 'image/jpeg')
             ->header('Cache-Control', 'private, max-age=300');
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    private function stringValue(array $values, string $key): string
+    {
+        $value = $values[$key] ?? '';
+
+        return is_string($value) ? $value : '';
     }
 }
