@@ -2,7 +2,7 @@ import type { PropsWithChildren } from 'react';
 
 export default function StaffPortalLayout({ children }: PropsWithChildren) {
     return (
-        <div className="flex min-h-svh flex-col bg-[#f4f1ee]">
+        <div className="flex min-h-svh flex-col bg-[#f4f1ee] transition-colors dark:bg-[#171313]">
             {/* Header */}
             <header className="border-b-2 border-[#efbf00] bg-[#60060d] px-6 py-2">
                 <div className="flex items-center gap-3">

@@ -18,10 +18,10 @@ export default function Login({ status }: Props) {
         <StaffPortalLayout>
             <Head title="Staff Portal" />
 
-            <div className="w-full max-w-sm rounded-2xl border border-[#d8d0c9] bg-white p-8 shadow-lg">
+            <div className="w-full max-w-sm rounded-2xl border border-[#d8d0c9] bg-white p-8 text-[#393939] shadow-lg transition-colors dark:border-[#4a3f3f] dark:bg-[#211b1b] dark:text-[#f7f1ed]">
                 {/* Icon */}
                 <div className="mb-7 flex justify-center">
-                    <div className="flex h-12 w-full items-center justify-center rounded-full bg-white lg:h-32">
+                    <div className="flex h-12 w-full items-center justify-center rounded-full bg-white lg:h-32 dark:bg-[#211b1b]">
                         <img
                             src="/authenticator-icon.svg"
                             alt="Authenticator"
@@ -32,22 +32,22 @@ export default function Login({ status }: Props) {
 
                 {/* Header Text */}
                 <div className="mb-7 text-center">
-                    <h1 className="mb-1 text-xl leading-none font-bold text-[#393939]">
+                    <h1 className="mb-1 text-xl leading-none font-bold text-[#393939] dark:text-[#f7f1ed]">
                         Staff Portal
                     </h1>
-                    <p className="text-xs text-[#919191]">
+                    <p className="text-xs text-[#6f6f6f] dark:text-[#c9bebb]">
                         Authorized Registrar Personnel Only
                     </p>
                 </div>
 
                 {/* Warning Box */}
-                <div className="mb-7 flex gap-3 rounded-lg bg-[#fff6e6] p-3">
+                <div className="mb-7 flex gap-3 rounded-lg bg-[#fff6e6] p-3 dark:bg-[#3a2a12]">
                     <img
                         src="/error-icon.svg"
                         alt="Warning"
                         className="h-4 w-4 shrink-0"
                     />
-                    <p className="text-xs leading-relaxed text-[#6f4400]">
+                    <p className="text-xs leading-relaxed text-[#6f4400] dark:text-[#ffd88a]">
                         This system is restricted to authorized USeP Registrar
                         staff. Unauthorized access is prohibited.
                     </p>
@@ -65,7 +65,7 @@ export default function Login({ status }: Props) {
                             <div className="flex flex-col gap-1">
                                 <Label
                                     htmlFor="email"
-                                    className="text-xs font-medium text-[#4f4f4f]"
+                                    className="text-xs font-medium text-[#4f4f4f] dark:text-[#e8ded8]"
                                 >
                                     Email
                                 </Label>
@@ -78,7 +78,7 @@ export default function Login({ status }: Props) {
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="Enter email"
-                                    className="rounded-md border border-[#e2ddd8] bg-white px-2 py-1.5 text-xs placeholder-[#a7a7a7]"
+                                    className="rounded-md border border-[#e2ddd8] bg-white px-2 py-1.5 text-xs text-[#393939] placeholder-[#767676] dark:border-[#514646] dark:bg-[#171313] dark:text-[#f7f1ed] dark:placeholder-[#a99f9c]"
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -87,7 +87,7 @@ export default function Login({ status }: Props) {
                             <div className="flex flex-col gap-1">
                                 <Label
                                     htmlFor="password"
-                                    className="text-xs font-medium text-[#4f4f4f]"
+                                    className="text-xs font-medium text-[#4f4f4f] dark:text-[#e8ded8]"
                                 >
                                     Password
                                 </Label>
@@ -98,7 +98,7 @@ export default function Login({ status }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Enter password"
-                                    className="rounded-md border border-[#e2ddd8] bg-white px-2 py-1.5 text-xs placeholder-[#a7a7a7]"
+                                    className="rounded-md border border-[#e2ddd8] bg-white px-2 py-1.5 text-xs text-[#393939] placeholder-[#767676] dark:border-[#514646] dark:bg-[#171313] dark:text-[#f7f1ed] dark:placeholder-[#a99f9c]"
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -126,15 +126,15 @@ export default function Login({ status }: Props) {
                             </button>
 
                             {/* Forgot Password Link */}
-                            <div className="text-center text-xs text-[#919191]">
+                            <div className="text-center text-xs text-[#6f6f6f] dark:text-[#c9bebb]">
                                 Forgot Password?{' '}
-                                <span className="text-[#6f0000]">
+                                <span className="text-[#6f0000] dark:text-[#ff9a9a]">
                                     Contact your administrator.
                                 </span>
                             </div>
 
                             {status && (
-                                <div className="rounded-md bg-green-50 p-3 text-center text-xs font-medium text-green-700">
+                                <div className="rounded-md bg-green-50 p-3 text-center text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-200">
                                     {status}
                                 </div>
                             )}
