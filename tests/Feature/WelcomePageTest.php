@@ -12,9 +12,9 @@ test('welcome page is displayed', function () {
             fn (Assert $page) => $page
                 ->component('welcome')
                 ->where('content.hero.line_highlight', 'TOR Forgeries')
-                ->where('images.logo', null)
-                ->where('images.heroBackground', null)
-                ->where('images.torPreview', null),
+                ->where('images.logo', '/usep-logo-small.png')
+                ->where('images.heroBackground', '/welcome-hero-background.png')
+                ->where('images.torPreview', '/welcome-tor-preview.png'),
         );
 });
 

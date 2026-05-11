@@ -10,6 +10,12 @@ use Laravel\Fortify\Features;
 
 class WelcomePageController extends Controller
 {
+    private const DEFAULT_LOGO_IMAGE = '/usep-logo-small.png';
+
+    private const DEFAULT_HERO_BACKGROUND_IMAGE = '/welcome-hero-background.png';
+
+    private const DEFAULT_TOR_PREVIEW_IMAGE = '/welcome-tor-preview.png';
+
     /**
      * Display the public welcome page.
      */
@@ -23,13 +29,13 @@ class WelcomePageController extends Controller
             'images' => [
                 'logo' => $welcomeContent?->logo_image_path
                     ? Storage::disk('public')->url($welcomeContent->logo_image_path)
-                    : null,
+                    : self::DEFAULT_LOGO_IMAGE,
                 'heroBackground' => $welcomeContent?->hero_background_image_path
                     ? Storage::disk('public')->url($welcomeContent->hero_background_image_path)
-                    : null,
+                    : self::DEFAULT_HERO_BACKGROUND_IMAGE,
                 'torPreview' => $welcomeContent?->tor_preview_image_path
                     ? Storage::disk('public')->url($welcomeContent->tor_preview_image_path)
-                    : null,
+                    : self::DEFAULT_TOR_PREVIEW_IMAGE,
             ],
         ]);
     }
