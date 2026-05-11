@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowUp, BadgeCheck, FileArchive, ScanSearch } from 'lucide-react';
-import { dashboard, login, register } from '@/routes';
+import { login, register, uploadTor } from '@/routes';
 import type { WelcomeImages, WelcomePageContent } from '@/types';
 
 const fallbackContent: WelcomePageContent = {
@@ -91,8 +91,9 @@ const fallbackContent: WelcomePageContent = {
 const fallbackImages = {
     logo: '/usep-logo-small.png',
     heroBackground: '/welcome-hero-background.png',
+    heroBackgroundMobile: '/welcome-hero-background-mobile.png',
     torPreview: '/welcome-tor-preview.svg',
-} satisfies Record<keyof WelcomeImages, string>;
+} satisfies Record<keyof WelcomeImages | 'heroBackgroundMobile', string>;
 
 const aboutIcons = [FileArchive, ScanSearch, BadgeCheck] as const;
 
@@ -127,6 +128,10 @@ export default function Welcome({
             label: content.metrics.f1_label,
         },
     ];
+    const heroBackground =
+        images.heroBackground ?? fallbackImages.heroBackground;
+    const mobileHeroBackground =
+        images.heroBackground ?? fallbackImages.heroBackgroundMobile;
 
     return (
         <>
@@ -167,10 +172,10 @@ export default function Welcome({
                         <nav className="flex items-center gap-2 sm:gap-3">
                             {auth.user ? (
                                 <Link
-                                    href={dashboard()}
+                                    href={uploadTor()}
                                     className="rounded-full border border-[#efbf00]/60 px-4 py-1.5 text-xs font-semibold text-[#efbf00] transition hover:border-[#efbf00] hover:bg-[#efbf00]/10 sm:text-sm"
                                 >
-                                    Dashboard
+                                    Staff Portal
                                 </Link>
                             ) : (
                                 <>
@@ -195,14 +200,17 @@ export default function Welcome({
                 </header>
 
                 <section className="relative overflow-hidden bg-[#400c10]">
-                    <img
-                        src={
-                            images.heroBackground ??
-                            fallbackImages.heroBackground
-                        }
-                        alt=""
-                        className="absolute inset-0 size-full object-cover object-bottom"
-                    />
+                    <picture>
+                        <source
+                            media="(min-width: 768px)"
+                            srcSet={heroBackground}
+                        />
+                        <img
+                            src={mobileHeroBackground}
+                            alt=""
+                            className="absolute inset-0 size-full object-cover object-center"
+                        />
+                    </picture>
                     <div className="absolute inset-0 bg-linear-to-b from-black/70 to-[#6f0000]/70" />
 
                     <div className="relative mx-auto grid w-full max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">

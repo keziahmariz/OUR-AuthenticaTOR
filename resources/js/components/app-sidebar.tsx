@@ -1,5 +1,11 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid, Upload } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import {
+    BookOpen,
+    FolderGit2,
+    GraduationCap,
+    Signature,
+    Upload,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -13,15 +19,12 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard, uploadTor } from '@/routes';
+import { uploadTor } from '@/routes';
+import { edit as editAcademicPrograms } from '@/routes/academic-programs';
+import { edit as editSignatures } from '@/routes/signatures';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
     {
         title: 'Upload Transcript of Records',
         href: uploadTor(),
@@ -43,13 +46,32 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { can } = usePage().props;
+    const adminNavItems: NavItem[] = [];
+
+    if (can.manageSignatures) {
+        adminNavItems.push({
+            title: 'Signature References',
+            href: editSignatures(),
+            icon: Signature,
+        });
+    }
+
+    if (can.manageAcademicPrograms) {
+        adminNavItems.push({
+            title: 'Academic Programs',
+            href: editAcademicPrograms(),
+            icon: GraduationCap,
+        });
+    }
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={uploadTor()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -59,6 +81,9 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain items={mainNavItems} />
+                {adminNavItems.length > 0 && (
+                    <NavMain label="Management" items={adminNavItems} />
+                )}
             </SidebarContent>
 
             <SidebarFooter>
