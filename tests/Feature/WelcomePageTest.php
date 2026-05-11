@@ -14,7 +14,7 @@ test('welcome page is displayed', function () {
                 ->where('content.hero.line_highlight', 'TOR Forgeries')
                 ->where('images.logo', '/usep-logo-small.png')
                 ->where('images.heroBackground', '/welcome-hero-background.png')
-                ->where('images.torPreview', '/welcome-tor-preview.png'),
+                ->where('images.torPreview', '/welcome-tor-preview.svg'),
         );
 });
 

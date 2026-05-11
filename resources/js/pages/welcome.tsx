@@ -91,7 +91,7 @@ const fallbackContent: WelcomePageContent = {
 const fallbackImages = {
     logo: '/usep-logo-small.png',
     heroBackground: '/welcome-hero-background.png',
-    torPreview: '/welcome-tor-preview.png',
+    torPreview: '/welcome-tor-preview.svg',
 } satisfies Record<keyof WelcomeImages, string>;
 
 const aboutIcons = [FileArchive, ScanSearch, BadgeCheck] as const;

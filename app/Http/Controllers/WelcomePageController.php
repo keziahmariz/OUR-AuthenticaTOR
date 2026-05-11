@@ -14,7 +14,7 @@ class WelcomePageController extends Controller
 
     private const DEFAULT_HERO_BACKGROUND_IMAGE = '/welcome-hero-background.png';
 
-    private const DEFAULT_TOR_PREVIEW_IMAGE = '/welcome-tor-preview.png';
+    private const DEFAULT_TOR_PREVIEW_IMAGE = '/welcome-tor-preview.svg';
 
     /**
      * Display the public welcome page.
