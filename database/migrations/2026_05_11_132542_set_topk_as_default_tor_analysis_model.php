@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tor_analysis_results', function (Blueprint $table): void {
-            $table->string('model_key')->default('efficientnet_b0_topk')->after('django_job_id');
-            $table->string('model_label')->default('EfficientNet-B0 top-k aggregation')->after('model_key');
+            $table->string('model_key')->default('efficientnet_b0_topk')->change();
+            $table->string('model_label')->default('EfficientNet-B0 top-k aggregation')->change();
         });
     }
 
@@ -23,10 +23,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tor_analysis_results', function (Blueprint $table): void {
-            $table->dropColumn([
-                'model_key',
-                'model_label',
-            ]);
+            $table->string('model_key')->default('efficientnet_b0_topk')->change();
+            $table->string('model_label')->default('EfficientNet-B0 top-k aggregation')->change();
         });
     }
 };

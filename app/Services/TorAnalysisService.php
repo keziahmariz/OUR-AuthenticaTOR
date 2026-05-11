@@ -12,9 +12,7 @@ use RuntimeException;
 class TorAnalysisService
 {
     private const ModelLabels = [
-        'efficientnet_b0' => 'EfficientNet-B0 baseline',
         'efficientnet_b0_topk' => 'EfficientNet-B0 top-k aggregation',
-        'resnet50_mean' => 'ResNet50 mean aggregation',
     ];
 
     public function __construct(private AcademicProgramMatcher $academicProgramMatcher) {}
@@ -40,7 +38,7 @@ class TorAnalysisService
     /**
      * @param  array<string, string>  $expectedSignatures
      */
-    public function analyze(string $storedPath, array $expectedSignatures = [], string $modelKey = 'efficientnet_b0'): array
+    public function analyze(string $storedPath, array $expectedSignatures = [], string $modelKey = 'efficientnet_b0_topk'): array
     {
         $externalId = (string) Str::uuid();
         $payload = $this->sendToModelService($storedPath, $externalId, $expectedSignatures, $modelKey);
@@ -143,10 +141,10 @@ class TorAnalysisService
             'patch_counts' => $this->arrayValue($payload, 'patch_counts'),
         ];
 
-        $modelKey = $this->stringValue($payload, 'model_key') ?: $this->stringValue($result, 'model_key') ?: 'efficientnet_b0';
+        $modelKey = $this->stringValue($payload, 'model_key') ?: $this->stringValue($result, 'model_key') ?: 'efficientnet_b0_topk';
         $modelLabel = $this->stringValue($payload, 'model_label')
             ?: $this->stringValue($result, 'model_label')
-            ?: (self::ModelLabels[$modelKey] ?? self::ModelLabels['efficientnet_b0']);
+            ?: (self::ModelLabels[$modelKey] ?? self::ModelLabels['efficientnet_b0_topk']);
 
         return [
             'external_id' => $externalId,

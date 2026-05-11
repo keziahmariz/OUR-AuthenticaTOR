@@ -20,28 +20,9 @@ import { uploadTor } from '@/routes';
 
 const allowedMimeTypes = ['image/jpeg', 'image/png'];
 const maxFileSize = 10 * 1024 * 1024;
-const modelOptions = [
-    {
-        key: 'efficientnet_b0',
-        label: 'EfficientNet-B0 baseline',
-        description: 'Current production detector',
-    },
-    {
-        key: 'efficientnet_b0_topk',
-        label: 'EfficientNet-B0 top-k aggregation',
-        description: 'Frozen EfficientNet-B0 with top-5 patch aggregation',
-    },
-    {
-        key: 'resnet50_mean',
-        label: 'ResNet50 mean aggregation',
-        description: 'New checkpoint, same preprocessing',
-    },
-] as const;
-const defaultModelKey = 'efficientnet_b0' as const;
+const defaultModelKey = 'efficientnet_b0_topk' as const;
 const modelThresholds: Record<ModelKey, number> = {
-    efficientnet_b0: 0.38,
     efficientnet_b0_topk: 0.8,
-    resnet50_mean: 0.34,
 };
 const signaturePickerSlots = [
     {
@@ -94,8 +75,6 @@ type RoiScoreValue =
     | number
     | {
           n_patches?: number;
-          mean?: number;
-          max?: number;
           [key: string]: number | undefined;
       };
 
@@ -168,7 +147,7 @@ type UploadForm = {
     expected_signatures: ExpectedSignatures;
 };
 
-type ModelKey = (typeof modelOptions)[number]['key'];
+type ModelKey = typeof defaultModelKey;
 type SignatureSlot = (typeof signaturePickerSlots)[number]['key'];
 type ExpectedSignatures = Record<SignatureSlot, string>;
 type SignaturePersonnelOption = {
@@ -317,60 +296,6 @@ function SignaturePicker({
                         </select>
                     </label>
                 ))}
-            </div>
-        </div>
-    );
-}
-
-function ModelPicker({
-    value,
-    onChange,
-}: {
-    value: ModelKey;
-    onChange: (modelKey: ModelKey) => void;
-}) {
-    return (
-        <div className="flex w-full flex-col overflow-hidden rounded-lg border border-[#e2ddd8]">
-            <div className="flex flex-col gap-1.5 bg-[#fbfaf9] p-4">
-                <h3 className="text-[10px] font-bold text-[#393939]">
-                    Detection Model
-                </h3>
-                <p className="text-[8px] text-[#7b7b7b]">
-                    Choose which trained detector will score this TOR.
-                </p>
-            </div>
-            <div className="grid gap-3 border-t border-[#e2ddd8] bg-white p-4 sm:grid-cols-2">
-                {modelOptions.map((model) => {
-                    const isSelected = value === model.key;
-
-                    return (
-                        <label
-                            key={model.key}
-                            className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition ${
-                                isSelected
-                                    ? 'border-[#9a0000] bg-[#fff6f6]'
-                                    : 'border-[#d3d3d3] bg-white hover:border-[#c4a4a4]'
-                            }`}
-                        >
-                            <input
-                                type="radio"
-                                name="model_key"
-                                value={model.key}
-                                checked={isSelected}
-                                onChange={() => onChange(model.key)}
-                                className="mt-0.5 h-3 w-3 accent-[#9a0000]"
-                            />
-                            <span className="flex min-w-0 flex-col gap-1">
-                                <span className="text-[10px] font-bold text-[#393939]">
-                                    {model.label}
-                                </span>
-                                <span className="text-[8px] text-[#7b7b7b]">
-                                    {model.description}
-                                </span>
-                            </span>
-                        </label>
-                    );
-                })}
             </div>
         </div>
     );
@@ -896,14 +821,6 @@ function roiScoreValue(value: RoiScoreValue) {
         return value[topKMeanKey] ?? 0;
     }
 
-    if (Number.isFinite(value.mean)) {
-        return value.mean ?? 0;
-    }
-
-    if (Number.isFinite(value.max)) {
-        return value.max ?? 0;
-    }
-
     return 0;
 }
 
@@ -1156,11 +1073,6 @@ export default function UploadTor({
         clearErrors(`expected_signatures.${slot}`);
     };
 
-    const handleModelChange = (modelKey: ModelKey) => {
-        setData('model_key', modelKey);
-        clearErrors('model_key');
-    };
-
     const handleReset = () => {
         clearStageTimers();
         setCurrentStep(1);
@@ -1331,11 +1243,6 @@ export default function UploadTor({
                                 </div>
                             </div>
                         )}
-
-                        <ModelPicker
-                            value={data.model_key}
-                            onChange={handleModelChange}
-                        />
 
                         <SignaturePicker
                             personnel={signaturePersonnel}
