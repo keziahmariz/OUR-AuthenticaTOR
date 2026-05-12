@@ -41,7 +41,6 @@ const signaturePickerSlots = [
 const analysisStages = [
     'Preprocessing document image',
     'Extracting document features',
-    'Scoring anomaly patterns',
     'Preparing preprocessed image',
 ] as const;
 
@@ -52,7 +51,6 @@ type TorAnalysisResult = {
     model_key: ModelKey;
     model_label: string;
     forgery_confidence: number;
-    authenticity_score: number;
     verdict: string;
     detected_indicators: string[];
     preprocessed_image_url: string | null;
@@ -361,7 +359,6 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
     const documentScore = clampScore(
         result.model_result?.score ?? result.forgery_confidence / 100,
     );
-    const authenticitySupport = clampScore(1 - documentScore);
     const topRoi = result.model_result?.top_roi ?? null;
     const topRoiScore = clampScore(
         result.model_result?.top_roi_score ??
@@ -445,11 +442,6 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
                         value={documentScore * 100}
                         color="#9a0000"
                     />
-                    <ConfidenceBar
-                        label="Authenticity support"
-                        value={authenticitySupport * 100}
-                        color="#1b622f"
-                    />
 
                     <div className="flex w-full flex-col gap-2 rounded-lg border border-[#e2ddd8] bg-white p-4">
                         <div className="flex items-center justify-between gap-3">
@@ -458,7 +450,9 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
                                     Most suspicious region
                                 </span>
                                 <span className="text-[10px] font-bold text-[#393939]">
-                                    {topRoi ? topRoi.replaceAll('_', ' ') : 'Unavailable'}
+                                    {topRoi
+                                        ? topRoi.replaceAll('_', ' ')
+                                        : 'Unavailable'}
                                 </span>
                             </div>
                             <span className="font-mono text-sm font-bold text-[#9a0000]">
@@ -539,13 +533,13 @@ function ScoreBreakdown({ result }: { result: TorAnalysisResult }) {
     return (
         <div className="flex flex-col gap-7">
             <div className="flex flex-col gap-2 rounded-lg border border-[#e2ddd8] bg-[#fbfaf9] p-4 text-[10px] text-[#656565]">
-                <span className="text-[8px] font-bold uppercase text-[#897b7b]">
+                <span className="text-[8px] font-bold text-[#897b7b] uppercase">
                     ROI explanation
                 </span>
                 <span>
                     The region with the highest top5 mean is the most suspicious
-                    part of the TOR and the strongest clue for the whole-document
-                    score.
+                    part of the TOR and the strongest clue for the
+                    whole-document score.
                 </span>
             </div>
 
