@@ -46,7 +46,7 @@ const fallbackContent: WelcomePageContent = {
             {
                 title: 'Verdict',
                 description:
-                    'Each check produces a verdict - Authentic or Likely Forged - with a confidence score and visual heatmap of flagged regions.',
+                    'Each check produces a verdict - Authentic or Suspicious - with a confidence score and visual heatmap of flagged regions.',
             },
         ],
     },

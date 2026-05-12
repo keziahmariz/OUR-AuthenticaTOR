@@ -79,7 +79,7 @@ class WelcomePageContent extends Model
                     ],
                     [
                         'title' => 'Verdict',
-                        'description' => 'Each check produces a verdict - Authentic or Likely Forged - with a confidence score and visual heatmap of flagged regions.',
+                        'description' => 'Each check produces a verdict - Authentic or Suspicious - with a confidence score and visual heatmap of flagged regions.',
                     ],
                 ],
             ],

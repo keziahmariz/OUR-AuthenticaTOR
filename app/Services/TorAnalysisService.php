@@ -100,7 +100,7 @@ class TorAnalysisService
 
     private function modelEndpoint(): string
     {
-        return rtrim((string) config('services.tor_model.url'), '/').'/api/images/';
+        return rtrim((string) config('services.tor_model.url'), '/') . '/api/images/';
     }
 
     /**
@@ -153,7 +153,7 @@ class TorAnalysisService
             'model_label' => $modelLabel,
             'forgery_confidence' => $forgeryConfidence,
             'authenticity_score' => $authenticityScore,
-            'verdict' => $label === 'fake' ? 'Likely Forged' : 'Likely Authentic',
+            'verdict' => $label === 'fake' ? 'Suspicious' : 'Likely Authentic',
             'detected_indicators' => $this->detectedIndicators($result, $preprocessing),
             'gradcam_attention_map_url' => $this->stringValue($payload, 'preprocessed_image_url') ?: null,
             'model_result' => $result,
@@ -207,7 +207,7 @@ class TorAnalysisService
                 ? sprintf('Most suspicious region: %s', Str::headline($this->stringValue($result, 'top_roi')))
                 : null,
             $roiScores !== []
-                ? 'ROI top5 means: '.$this->formatPercentMap($roiScores)
+                ? 'ROI top5 means: ' . $this->formatPercentMap($roiScores)
                 : null,
             $this->stringValue($preprocessing, 'method') !== ''
                 ? sprintf('Preprocessing method: %s', $this->stringValue($preprocessing, 'method'))
@@ -216,7 +216,7 @@ class TorAnalysisService
                 ? sprintf('Skew status: %s', $this->stringValue($preprocessing, 'skew_status'))
                 : null,
             $patchCounts !== []
-                ? 'Patch counts: '.$this->formatCountMap($patchCounts)
+                ? 'Patch counts: ' . $this->formatCountMap($patchCounts)
                 : null,
         ]));
     }
@@ -227,7 +227,7 @@ class TorAnalysisService
     private function formatPercentMap(array $values): string
     {
         return collect($values)
-            ->map(fn (mixed $value, string $key): string => sprintf('%s %.1f%%', Str::headline($key), $this->roiScoreValue($value) * 100))
+            ->map(fn(mixed $value, string $key): string => sprintf('%s %.1f%%', Str::headline($key), $this->roiScoreValue($value) * 100))
             ->implode(', ');
     }
 
@@ -237,7 +237,7 @@ class TorAnalysisService
     private function formatCountMap(array $values): string
     {
         return collect($values)
-            ->map(fn (mixed $value, string $key): string => sprintf('%s %d', Str::headline($key), (int) $this->numericValue($value)))
+            ->map(fn(mixed $value, string $key): string => sprintf('%s %d', Str::headline($key), (int) $this->numericValue($value)))
             ->implode(', ');
     }
 
