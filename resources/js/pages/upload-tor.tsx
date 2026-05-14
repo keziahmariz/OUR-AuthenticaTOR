@@ -727,7 +727,7 @@ function SignatureResultCard({
         signature.verdict === 'INVALID' || signature.status === 'INVALID';
     const scoreLabel = score === null ? 'N/A' : score.toFixed(4);
     const verdictLabel = isGenuine
-        ? 'Likely Genuine'
+        ? 'Likely Authentic'
         : isInvalid
           ? 'Invalid'
           : needsReview

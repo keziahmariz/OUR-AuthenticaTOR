@@ -50,7 +50,7 @@ test('upload tor page exposes a laravel proxy url for the latest preprocessed im
         'model_label' => 'EfficientNet-B0 top-k aggregation',
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
-        'verdict' => 'Likely Forged',
+        'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
@@ -80,7 +80,7 @@ test('upload tor page exposes signature verification with proxied artifact urls'
         'django_job_id' => 11,
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
-        'verdict' => 'Likely Forged',
+        'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => [
@@ -176,7 +176,7 @@ test('authenticated users can view their proxied preprocessed image', function (
         'django_job_id' => 11,
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
-        'verdict' => 'Likely Forged',
+        'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
@@ -201,7 +201,7 @@ test('authenticated users cannot view another users preprocessed image', functio
         'django_job_id' => 11,
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
-        'verdict' => 'Likely Forged',
+        'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
@@ -228,7 +228,7 @@ test('authenticated users can view their proxied signature artifact', function (
         'django_job_id' => 11,
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
-        'verdict' => 'Likely Forged',
+        'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => null,
         'model_result' => [
@@ -257,7 +257,7 @@ test('authenticated users cannot view unlisted signature artifact urls', functio
         'django_job_id' => 11,
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
-        'verdict' => 'Likely Forged',
+        'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => null,
         'model_result' => [
@@ -285,7 +285,7 @@ test('authenticated users cannot view another users signature artifact', functio
         'django_job_id' => 11,
         'forgery_confidence' => 93.3,
         'authenticity_score' => 6.7,
-        'verdict' => 'Likely Forged',
+        'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
         'gradcam_attention_map_url' => null,
         'model_result' => [
@@ -373,7 +373,7 @@ test('authenticated users can analyze a valid tor image', function () {
         ->model_label->toBe('EfficientNet-B0 top-k aggregation')
         ->forgery_confidence->toBe(93.3)
         ->authenticity_score->toBe(6.7)
-        ->verdict->toBe('Likely Forged')
+        ->verdict->toBe('Suspicious')
         ->detected_indicators->toHaveCount(7)
         ->gradcam_attention_map_url->toBe('http://127.0.0.1:8001/media/preprocessed/tor.jpg')
         ->model_result->toMatchArray(['label' => 'fake', 'score' => 0.933])

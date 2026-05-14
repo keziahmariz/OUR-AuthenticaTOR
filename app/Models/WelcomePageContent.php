@@ -48,7 +48,7 @@ class WelcomePageContent extends Model
                 'line_one' => 'Detecting',
                 'line_highlight' => 'TOR Forgeries',
                 'line_three' => 'with Deep Learning',
-                'description' => "A research-backed system that uses deep learning to help the USeP Registrar's Office identify forged Transcripts of Records - trained on both synthetic and real-world data.",
+                'description' => "A research-backed system that uses deep learning to help the USeP Registrar's Office identify forged Transcripts of Records - trained on fabricated forgery samples and GAN-assisted synthetic data.",
                 'cta_label' => 'Go to Staff Portal',
                 'cta_note' => 'This portal is for authorized Registrar personnel only.',
                 'tor_title' => 'TRANSCRIPT OF RECORDS',
@@ -57,29 +57,29 @@ class WelcomePageContent extends Model
                 'verdict_detail' => 'No forgery detected.',
             ],
             'metrics' => [
-                'training_samples' => '124K+',
-                'training_label' => 'Training Samples',
-                'detection_accuracy' => '96.5%',
+                'training_samples' => '135K+',
+                'training_label' => 'Training Samples of Patches',
+                'detection_accuracy' => '95%',
                 'detection_label' => 'Detection Accuracy',
-                'f1_score' => '0.916',
+                'f1_score' => '0.90',
                 'f1_label' => 'F1 Score',
             ],
             'about' => [
                 'eyebrow' => 'ABOUT THE SYSTEM',
                 'title' => 'What This System Does',
-                'description' => 'The USeP - OUR TOR Forgery Detection System (OUR AuthenticaTOR) assists Registrar staff in identifying potentially falsified Transcripts of Records using a trained deep learning model - providing an objective, second layer of document verification.',
+                'description' => 'The USeP - OUR TOR Forgery Detection System (OUR AuthenticaTOR) assists Registrar staff in identifying potentially forged Transcripts of Records using a trained deep learning model - providing an objective, second layer of document verification.',
                 'steps' => [
                     [
                         'title' => 'Upload TOR',
-                        'description' => 'Registrar staff captures or uploads a scanned or photographed TOR directly into the system. No student interaction required.',
+                        'description' => 'Registrar staff captures or uploads a photographed TOR directly into the system. No student interaction required.',
                     ],
                     [
                         'title' => 'Deep Learning Model Analysis',
-                        'description' => 'The model analyzes the document for inconsistencies, compression artifacts, and signature anomalies.',
+                        'description' => 'The model analyzes the document for known inconsistencies based on trained data.',
                     ],
                     [
                         'title' => 'Verdict',
-                        'description' => 'Each check produces a verdict - Authentic or Suspicious - with a confidence score and visual heatmap of flagged regions.',
+                        'description' => 'Each check produces a verdict - Likely Authentic or Suspicious - with a per-region score and graph.',
                     ],
                 ],
             ],
@@ -90,7 +90,7 @@ class WelcomePageContent extends Model
                 'cards' => [
                     [
                         'label' => 'TITLE',
-                        'value' => 'A Patch-Based Deep Learning Framework for Detecting Forged Transcripts of Records Using GAN-Assisted Synthetic Data and Real-World Forgeries',
+                        'value' => 'A Patch-Based Deep Learning Framework for Detecting Forged Transcripts of Records Using Fabricated Forgery Samples and GAN-Assisted Synthetic Data',
                     ],
                     [
                         'label' => 'COLLEGE',
@@ -98,11 +98,11 @@ class WelcomePageContent extends Model
                     ],
                     [
                         'label' => 'MODEL ARCHITECTURE',
-                        'value' => 'GAN-Assisted + Pix2Pix + Triple Siamese + GradCAM',
+                        'value' => 'EfficientNet-B0 + Pix2Pix + ResNet18 Siamese + Tesseract OCR',
                     ],
                     [
-                        'label' => 'DATASET',
-                        'value' => '100,000 synthetic samples and 20,000 real-world samples',
+                        'label' => 'TRAINING SAMPLES',
+                        'value' => '135,884 patches (Combined: 89,516 genuine + 46,368 forged)',
                     ],
                 ],
             ],

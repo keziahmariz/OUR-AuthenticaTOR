@@ -27,7 +27,9 @@ test('admin users can access welcome content settings', function () {
         ->assertInertia(
             fn (Assert $page) => $page
                 ->component('settings/welcome-content')
-                ->where('content.hero.line_highlight', 'TOR Forgeries'),
+                ->where('content.hero.line_highlight', 'TOR Forgeries')
+                ->where('content.metrics.training_samples', '135K+')
+                ->where('content.about.steps.2.description', 'Each check produces a verdict - Likely Authentic or Suspicious - with a per-region score and graph.'),
         );
 });
 

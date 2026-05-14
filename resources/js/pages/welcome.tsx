@@ -1,6 +1,12 @@
-import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowUp, BadgeCheck, FileArchive, ScanSearch } from 'lucide-react';
-import { login, register, uploadTor } from '@/routes';
+import { Head, Link } from '@inertiajs/react';
+import {
+    ArrowUp,
+    BadgeCheck,
+    FileArchive,
+    LogIn,
+    ScanSearch,
+} from 'lucide-react';
+import { login } from '@/routes';
 import type { WelcomeImages, WelcomePageContent } from '@/types';
 
 const fallbackContent: WelcomePageContent = {
@@ -11,7 +17,7 @@ const fallbackContent: WelcomePageContent = {
         line_highlight: 'TOR Forgeries',
         line_three: 'with Deep Learning',
         description:
-            "A research-backed system that uses deep learning to help the USeP Registrar's Office identify forged Transcripts of Records - trained on both synthetic and real-world data.",
+            "A research-backed system that uses deep learning to help the USeP Registrar's Office identify forged Transcripts of Records - trained on fabricated forgery samples and GAN-assisted synthetic data.",
         cta_label: 'Go to Staff Portal',
         cta_note: 'This portal is for authorized Registrar personnel only.',
         tor_title: 'TRANSCRIPT OF RECORDS',
@@ -20,33 +26,33 @@ const fallbackContent: WelcomePageContent = {
         verdict_detail: 'No forgery detected.',
     },
     metrics: {
-        training_samples: '124K+',
-        training_label: 'Training Samples',
-        detection_accuracy: '96.5%',
+        training_samples: '135K+',
+        training_label: 'Training Samples of Patches',
+        detection_accuracy: '95%',
         detection_label: 'Detection Accuracy',
-        f1_score: '0.916',
+        f1_score: '0.90',
         f1_label: 'F1 Score',
     },
     about: {
         eyebrow: 'ABOUT THE SYSTEM',
         title: 'What This System Does',
         description:
-            'The USeP - OUR TOR Forgery Detection System (OUR AuthenticaTOR) assists Registrar staff in identifying potentially falsified Transcripts of Records using a trained deep learning model - providing an objective, second layer of document verification.',
+            'The USeP - OUR TOR Forgery Detection System (OUR AuthenticaTOR) assists Registrar staff in identifying potentially forged Transcripts of Records using a trained deep learning model - providing an objective, second layer of document verification.',
         steps: [
             {
                 title: 'Upload TOR',
                 description:
-                    'Registrar staff captures or uploads a scanned or photographed TOR directly into the system. No student interaction required.',
+                    'Registrar staff captures or uploads a photographed TOR directly into the system. No student interaction required.',
             },
             {
                 title: 'Deep Learning Model Analysis',
                 description:
-                    'The model analyzes the document for inconsistencies, compression artifacts, and signature anomalies.',
+                    'The model analyzes the document for known inconsistencies based on trained data.',
             },
             {
                 title: 'Verdict',
                 description:
-                    'Each check produces a verdict - Authentic or Suspicious - with a confidence score and visual heatmap of flagged regions.',
+                    'Each check produces a verdict - Likely Authentic or Suspicious - with a per-region score and graph.',
             },
         ],
     },
@@ -58,7 +64,7 @@ const fallbackContent: WelcomePageContent = {
         cards: [
             {
                 label: 'TITLE',
-                value: 'A Patch-Based Deep Learning Framework for Detecting Forged Transcripts of Records Using GAN-Assisted Synthetic Data and Real-World Forgeries',
+                value: 'A Patch-Based Deep Learning Framework for Detecting Forged Transcripts of Records Using Fabricated Forgery Samples and GAN-Assisted Synthetic Data',
             },
             {
                 label: 'COLLEGE',
@@ -66,11 +72,11 @@ const fallbackContent: WelcomePageContent = {
             },
             {
                 label: 'MODEL ARCHITECTURE',
-                value: 'GAN-Assisted + Pix2Pix + Triple Siamese + GradCAM',
+                value: 'EfficientNet-B0 + Pix2Pix + ResNet18 Siamese + Tesseract OCR',
             },
             {
-                label: 'DATASET',
-                value: '100,000 synthetic samples and 20,000 real-world samples',
+                label: 'TRAINING SAMPLES',
+                value: '135,884 patches (Combined: 89,516 genuine + 46,368 forged)',
             },
         ],
     },
@@ -98,7 +104,6 @@ const fallbackImages = {
 const aboutIcons = [FileArchive, ScanSearch, BadgeCheck] as const;
 
 export default function Welcome({
-    canRegister = true,
     content = fallbackContent,
     images = fallbackImages,
 }: {
@@ -106,14 +111,6 @@ export default function Welcome({
     content?: WelcomePageContent;
     images?: WelcomeImages;
 }) {
-    const { auth } = usePage().props as {
-        auth: {
-            user?: {
-                id: number;
-            } | null;
-        };
-    };
-
     const metricItems = [
         {
             value: content.metrics.training_samples,
@@ -144,58 +141,28 @@ export default function Welcome({
             </Head>
 
             <div id="top" className="min-h-screen bg-[#1e1a1a] text-white">
-                <header className="sticky top-0 z-50 border-b-2 border-[#efbf00] bg-[#60060d]/95 backdrop-blur">
-                    <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-4 py-3 sm:px-6">
-                        <div className="flex items-center gap-3">
-                            {images.logo ? (
-                                <img
-                                    src={images.logo}
-                                    alt="USeP"
-                                    className="size-10 rounded-full border border-[#efbf00]/70 object-cover"
-                                />
-                            ) : (
-                                <div className="flex size-10 items-center justify-center rounded-full border border-[#efbf00]/70 bg-[#2a0000] text-sm font-semibold text-[#efbf00]">
-                                    U
-                                </div>
-                            )}
-
-                            <div className="leading-tight">
-                                <p className="font-['Cinzel_Decorative',serif] text-[10px] font-bold sm:text-xs">
-                                    University of Southeastern Philippines
-                                </p>
-                                <p className="font-['Inter',sans-serif] text-[9px] text-[#f4c6c6] sm:text-[11px]">
-                                    Obrero Campus, Davao City
-                                </p>
+                <header className="sticky top-0 z-50 border-b-2 border-[#efbf00] bg-[#60060d]">
+                    <div className="mx-auto flex h-[60px] w-full max-w-6xl items-center gap-2 px-6 py-2">
+                        {images.logo ? (
+                            <img
+                                src={images.logo}
+                                alt="USeP"
+                                className="size-8 shrink-0 rounded-full object-cover"
+                            />
+                        ) : (
+                            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#2a0000] text-xs font-semibold text-[#efbf00]">
+                                U
                             </div>
-                        </div>
+                        )}
 
-                        <nav className="flex items-center gap-2 sm:gap-3">
-                            {auth.user ? (
-                                <Link
-                                    href={uploadTor()}
-                                    className="rounded-full border border-[#efbf00]/60 px-4 py-1.5 text-xs font-semibold text-[#efbf00] transition hover:border-[#efbf00] hover:bg-[#efbf00]/10 sm:text-sm"
-                                >
-                                    Staff Portal
-                                </Link>
-                            ) : (
-                                <>
-                                    <Link
-                                        href={login()}
-                                        className="rounded-full border border-[#f3d8bf]/30 px-4 py-1.5 text-xs font-semibold text-[#f3d8bf] transition hover:border-[#f3d8bf]/70 hover:bg-[#f3d8bf]/10 sm:text-sm"
-                                    >
-                                        Log in
-                                    </Link>
-                                    {canRegister && (
-                                        <Link
-                                            href={register()}
-                                            className="rounded-full bg-[#efbf00] px-4 py-1.5 text-xs font-semibold text-[#3a1500] transition hover:bg-[#f4cb3d] sm:text-sm"
-                                        >
-                                            Register
-                                        </Link>
-                                    )}
-                                </>
-                            )}
-                        </nav>
+                        <div className="leading-none">
+                            <p className="font-['Cinzel_Decorative',serif] text-[10px] font-bold sm:text-xs">
+                                University of Southeastern Philippines
+                            </p>
+                            <p className="mt-1 font-['Inter',sans-serif] text-[9px] text-white sm:text-[10px]">
+                                Obrero Campus, Davao City
+                            </p>
+                        </div>
                     </div>
                 </header>
 
@@ -211,18 +178,18 @@ export default function Welcome({
                             className="absolute inset-0 size-full object-cover object-center"
                         />
                     </picture>
-                    <div className="absolute inset-0 bg-linear-to-b from-black/70 to-[#6f0000]/70" />
+                    <div className="absolute inset-0 bg-linear-to-b from-black/80 to-[#6f0000]/80" />
 
-                    <div className="relative mx-auto grid w-full max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:py-16">
-                        <div className="space-y-6">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-[#efbf00] bg-[#400c10]/50 px-4 py-2 text-[10px] font-semibold tracking-wide text-[#efbf00] uppercase sm:text-xs">
+                    <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8 lg:grid lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-12 lg:py-14">
+                        <div className="space-y-8 lg:sticky lg:top-24">
+                            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#efbf00] bg-[#400c10]/40 px-3 py-2 text-[8px] font-semibold text-[#efbf00] uppercase sm:text-[10px]">
                                 <span>{content.hero.badge_left}</span>
                                 <span className="size-1 rounded-full bg-[#efbf00]" />
                                 <span>{content.hero.badge_right}</span>
                             </div>
 
                             <div className="space-y-3">
-                                <h1 className="font-['Source_Code_Pro',monospace] text-4xl leading-[1.1] font-bold sm:text-5xl">
+                                <h1 className="font-['Source_Code_Pro',monospace] text-[32px] leading-[1.16] font-bold sm:text-5xl">
                                     <span className="block">
                                         {content.hero.line_one}
                                     </span>
@@ -233,65 +200,57 @@ export default function Welcome({
                                         {content.hero.line_three}
                                     </span>
                                 </h1>
-                                <p className="max-w-xl font-['Inter',sans-serif] text-sm leading-7 text-[#d3d3d3] sm:text-base">
+                                <p className="max-w-xl font-['Inter',sans-serif] text-sm leading-[1.6] text-[#d3d3d3]">
                                     {content.hero.description}
                                 </p>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-3.5">
                                 <Link
                                     href={login()}
-                                    className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-[#efab00] to-[#e7730e] px-6 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+                                    className="inline-flex items-center justify-center gap-1 rounded-full bg-linear-to-r from-[#efab00] to-[#e7730e] px-6 py-2 text-sm font-semibold text-white transition hover:brightness-110"
                                 >
+                                    <LogIn className="size-5" />
                                     {content.hero.cta_label}
                                 </Link>
-                                <p className="text-xs text-[#a7a7a7] sm:text-sm">
+                                <p className="text-xs text-[#a7a7a7]">
                                     {content.hero.cta_note}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-[#eadfd4]/40 bg-white/95 p-4 text-[#2a2121] shadow-2xl">
-                            <div className="flex items-center justify-between rounded-t-md bg-[#9a0000] px-4 py-3 text-white">
-                                <p className="font-['Inter',sans-serif] text-[11px] font-bold tracking-wide sm:text-xs">
+                        <div className="w-full overflow-hidden rounded-lg">
+                            <div className="flex items-center justify-between bg-[#9a0000] px-5 py-4 text-white">
+                                <p className="font-['Inter',sans-serif] text-[11px] font-bold sm:text-xs">
                                     {content.hero.tor_title}
                                 </p>
-                                <span className="rounded bg-white px-2 py-1 text-[10px] font-bold text-[#393939]">
+                                <span className="rounded bg-white px-3 py-1 text-[10px] font-bold text-[#393939]">
                                     {content.hero.tor_stamp}
                                 </span>
                             </div>
 
-                            <div className="space-y-4 rounded-b-md border border-[#eadfd4] bg-white p-4">
-                                <div className="grid place-items-center rounded-md border border-[#d9cebf] bg-[#f6f0e7] p-3">
-                                    <img
-                                        src={
-                                            images.torPreview ??
-                                            fallbackImages.torPreview
-                                        }
-                                        alt="TOR preview"
-                                        className="h-64 w-full rounded-sm object-contain sm:h-80 md:h-96 lg:h-[30rem]"
-                                    />
-                                </div>
-
-                                <div className="rounded-md border border-[#077336]/30 bg-[#e7fff4] px-3 py-2 text-center text-sm text-[#066a47]">
-                                    <span className="font-semibold">
-                                        {content.hero.verdict_title}
-                                    </span>{' '}
-                                    - {content.hero.verdict_detail}
-                                </div>
+                            <div className="grid place-items-center rounded-b-lg border border-[#eadfd4] bg-white p-5">
+                                <img
+                                    src={
+                                        images.torPreview ??
+                                        fallbackImages.torPreview
+                                    }
+                                    alt="TOR preview"
+                                    className="h-auto max-h-[418px] w-full max-w-[275px] object-contain"
+                                />
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <section className="bg-white py-12 text-center">
-                    <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 sm:px-6 md:grid-cols-3">
+                <section className="bg-white py-14 text-center">
+                    <div className="mx-auto grid w-full max-w-5xl gap-8 px-6 md:grid-cols-3">
                         {metricItems.map((item, idx) => (
                             <div key={`metric-${idx}`}>
-                                <p className="font-['Source_Code_Pro',monospace] text-5xl font-bold text-[#9a0000] sm:text-6xl">
+                                <p className="font-['Source_Code_Pro',monospace] text-6xl leading-none font-bold text-[#9a0000]">
                                     {item.value}
                                 </p>
-                                <p className="mt-2 font-['Inter',sans-serif] text-sm text-[#656565]">
+                                <p className="mt-2 font-['Inter',sans-serif] text-xs text-[#656565]">
                                     {item.label}
                                 </p>
                             </div>
@@ -299,36 +258,38 @@ export default function Welcome({
                     </div>
                 </section>
 
-                <section className="bg-[#f4f1ee] py-12 text-[#232323]">
-                    <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-                        <div className="max-w-3xl space-y-3">
-                            <p className="text-xs font-semibold tracking-[0.12em] text-[#c49d00]">
+                <section className="bg-[#f4f1ee] py-8 text-[#232323]">
+                    <div className="mx-auto w-full max-w-6xl px-6">
+                        <div className="max-w-3xl space-y-8">
+                            <p className="text-xs font-semibold text-[#c49d00]">
                                 {content.about.eyebrow}
                             </p>
-                            <h2 className="font-['Source_Code_Pro',monospace] text-3xl font-bold text-[#9a0000] sm:text-4xl">
-                                {content.about.title}
-                            </h2>
-                            <p className="font-['Inter',sans-serif] text-sm leading-7 text-[#656565] sm:text-base">
-                                {content.about.description}
-                            </p>
+                            <div className="space-y-3">
+                                <h2 className="font-['Source_Code_Pro',monospace] text-[26px] leading-[1.16] font-bold text-[#9a0000] sm:text-4xl">
+                                    {content.about.title}
+                                </h2>
+                                <p className="font-['Inter',sans-serif] text-sm leading-[1.6] text-[#656565]">
+                                    {content.about.description}
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="mt-8 grid gap-4 lg:grid-cols-3">
+                        <div className="mt-6 grid gap-4 lg:grid-cols-3">
                             {content.about.steps.map((step, index) => {
                                 const Icon = aboutIcons[index] ?? BadgeCheck;
 
                                 return (
                                     <article
                                         key={`about-step-${index}`}
-                                        className="rounded-xl border border-[#d8d0c9] bg-white p-5"
+                                        className="rounded-xl border border-[#d8d0c9] bg-white p-6"
                                     >
-                                        <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg border border-[#ecdcdc] bg-[#f5eaea] text-[#9a0000]">
-                                            <Icon className="size-5" />
+                                        <div className="mb-3 inline-flex size-9 items-center justify-center rounded-lg border border-[#ecdcdc] bg-[#f5eaea] text-[#9a0000]">
+                                            <Icon className="size-4" />
                                         </div>
-                                        <h3 className="font-['Inter',sans-serif] text-base font-bold text-[#232323]">
+                                        <h3 className="font-['Inter',sans-serif] text-sm font-bold text-[#232323]">
                                             {step.title}
                                         </h3>
-                                        <p className="mt-2 font-['Inter',sans-serif] text-sm leading-7 text-[#7b7b7b]">
+                                        <p className="mt-3 font-['Inter',sans-serif] text-sm leading-[1.6] text-[#7b7b7b]">
                                             {step.description}
                                         </p>
                                     </article>
@@ -338,30 +299,32 @@ export default function Welcome({
                     </div>
                 </section>
 
-                <section className="bg-[#400000] py-12 text-white">
-                    <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-                        <div className="max-w-3xl space-y-3">
-                            <p className="text-xs font-semibold tracking-[0.12em] text-[#c49d00]">
+                <section className="bg-[#440000] py-8 text-white">
+                    <div className="mx-auto w-full max-w-6xl px-6">
+                        <div className="max-w-3xl space-y-8">
+                            <p className="text-xs font-semibold text-[#c49d00]">
                                 {content.thesis.eyebrow}
                             </p>
-                            <h2 className="font-['Source_Code_Pro',monospace] text-3xl font-bold sm:text-4xl">
-                                {content.thesis.title}
-                            </h2>
-                            <p className="font-['Inter',sans-serif] text-sm leading-7 text-[#bdbdbd] sm:text-base">
-                                {content.thesis.description}
-                            </p>
+                            <div className="space-y-3">
+                                <h2 className="font-['Source_Code_Pro',monospace] text-[26px] leading-[1.16] font-bold sm:text-4xl">
+                                    {content.thesis.title}
+                                </h2>
+                                <p className="font-['Inter',sans-serif] text-sm leading-[1.6] text-[#bdbdbd]">
+                                    {content.thesis.description}
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="mt-8 grid gap-4 md:grid-cols-2">
+                        <div className="mt-6 grid gap-5 md:grid-cols-2">
                             {content.thesis.cards.map((card, idx) => (
                                 <article
                                     key={`thesis-card-${idx}`}
-                                    className="rounded-xl border border-[#902727] bg-[#9a000066] p-5"
+                                    className="rounded-xl border border-[#902727] bg-[#9a0000]/40 p-5"
                                 >
-                                    <p className="text-xs font-semibold tracking-[0.12em] text-[#c49d00]">
+                                    <p className="text-xs font-semibold text-[#c49d00]">
                                         {card.label}
                                     </p>
-                                    <p className="mt-3 font-['Source_Code_Pro',monospace] text-base leading-7 font-bold text-white">
+                                    <p className="mt-3 font-['Source_Code_Pro',monospace] text-base leading-[1.6] font-bold text-white">
                                         {card.value}
                                     </p>
                                 </article>
@@ -370,10 +333,10 @@ export default function Welcome({
                     </div>
                 </section>
 
-                <footer className="bg-[#1a0000] py-10 text-[#df8383]">
-                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+                <footer className="bg-[#1a0000] py-8 text-[#df8383]">
+                    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-7 lg:flex-row lg:items-end lg:justify-between">
                         <div className="space-y-4">
-                            <div className="space-y-1 text-[11px] sm:text-xs">
+                            <div className="space-y-1 text-[8px] sm:text-xs">
                                 <p className="font-semibold">
                                     {content.footer.university}
                                 </p>
@@ -386,7 +349,7 @@ export default function Welcome({
 
                             <div className="h-px w-12 bg-[#662929]" />
 
-                            <div className="space-y-1 text-[11px] text-[#8a5555] sm:text-xs">
+                            <div className="space-y-1 text-[8px] text-[#8a5555] sm:text-xs">
                                 <p>{content.footer.system_name}</p>
                                 <p>{content.footer.college}</p>
                                 <p>
@@ -395,7 +358,7 @@ export default function Welcome({
                                 </p>
                             </div>
 
-                            <p className="text-[11px] text-[#d3d3d3] sm:text-xs">
+                            <p className="text-[9px] text-[#d3d3d3] sm:text-xs">
                                 {content.footer.copyright}
                             </p>
                         </div>
