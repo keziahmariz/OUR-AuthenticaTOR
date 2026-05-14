@@ -56,8 +56,6 @@ type TorAnalysisResult = {
     preprocessed_image_url: string | null;
     model_result?: ModelResult | null;
     signature_verification: SignatureVerification | null;
-    signature_results: SignatureResult[];
-    academic_program_match: AcademicProgramMatch | null;
 };
 
 type ModelResult = {
@@ -90,7 +88,6 @@ type OcrResult = {
 type ProgramMatch = {
     matched: boolean;
     normalized_degree: string;
-    score?: number | null;
     program: {
         id: number;
         campus: string;
@@ -100,14 +97,6 @@ type ProgramMatch = {
         specialization: string | null;
         display_name: string;
     } | null;
-};
-
-type AcademicProgramMatch = {
-    extracted_degree: string | null;
-    normalized_degree: string | null;
-    matched: boolean;
-    score: number | null;
-    program_snapshot: ProgramMatch['program'];
 };
 
 type SignatureVerification = {
@@ -491,7 +480,6 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
             >
                 <SignatureVerificationPanel
                     verification={result.signature_verification}
-                    signatures={result.signature_results}
                 />
             </SectionBox>
 
@@ -499,10 +487,7 @@ function ResultsPanel({ result }: { result: TorAnalysisResult }) {
                 title="OCR - Degree Extraction"
                 description="Text extracted from the header region of the TOR"
             >
-                <OcrDegreePanel
-                    ocr={ocrResult}
-                    programMatch={result.academic_program_match}
-                />
+                <OcrDegreePanel ocr={ocrResult} />
             </SectionBox>
         </div>
     );
@@ -690,12 +675,10 @@ function VerdictBadge({ isForged }: { isForged: boolean }) {
 
 function SignatureVerificationPanel({
     verification,
-    signatures,
 }: {
     verification: SignatureVerification | null;
-    signatures: SignatureResult[];
 }) {
-    if (!verification && signatures.length === 0) {
+    if (!verification) {
         return (
             <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-[#d3d3d3] bg-[#f9f9f9] text-[10px] text-[#919191]">
                 Signature verification will appear here when the model pipeline
@@ -704,7 +687,7 @@ function SignatureVerificationPanel({
         );
     }
 
-    if (verification && !verification.success) {
+    if (!verification.success) {
         return (
             <div className="flex gap-2 rounded-md border border-[#ffc5c5] bg-[#fff6f6] p-4 text-[10px] text-[#9a0000]">
                 <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
@@ -716,168 +699,142 @@ function SignatureVerificationPanel({
         );
     }
 
-    const rows =
-        signatures.length > 0 ? signatures : (verification?.signatures ?? []);
-
-    return <SignatureResultsTable signatures={rows} />;
-}
-
-function SignatureResultsTable({
-    signatures,
-}: {
-    signatures: SignatureResult[];
-}) {
     return (
-        <div className="overflow-x-auto rounded border border-[#d3d3d3] text-[8px]">
-            <div className="grid min-w-[680px] grid-cols-[96px_120px_120px_88px_88px_100px_minmax(120px,1fr)] bg-[#e9e9e9] text-[6px] font-bold text-[#897b7b]">
-                <div className="px-2 py-1">IMAGE</div>
-                <div className="px-2 py-1">SIGNATURE</div>
-                <div className="px-2 py-1">REFERENCE</div>
-                <div className="px-2 py-1">SCORE</div>
-                <div className="px-2 py-1">DISTANCE</div>
-                <div className="px-2 py-1">VERDICT</div>
-                <div className="px-2 py-1">MESSAGE</div>
-            </div>
-            {signatures.map((signature, index) => {
-                const signatureImageUrl =
-                    signature.ink_mask_url ?? signature.band_crop_url;
-                const isGenuine =
-                    signature.is_match || signature.verdict === 'GENUINE';
-                const needsReview = signature.verdict === 'NEEDS MANUAL REVIEW';
-                const isInvalid =
-                    signature.verdict === 'INVALID' ||
-                    signature.status === 'INVALID';
-                const verdictLabel = isGenuine
-                    ? 'Likely Authentic'
-                    : isInvalid
-                      ? 'Invalid'
-                      : needsReview
-                        ? 'Manual Review'
-                        : 'Suspicious';
-
-                return (
-                    <div
-                        key={signature.slot}
-                        className="grid min-w-[680px] grid-cols-[96px_120px_120px_88px_88px_100px_minmax(120px,1fr)] items-center border-t border-[#d3d3d3] bg-white"
-                    >
-                        <div className="px-2 py-1">
-                            <div className="flex h-12 w-20 items-center justify-center overflow-hidden rounded bg-black">
-                                {signatureImageUrl ? (
-                                    <img
-                                        src={signatureImageUrl}
-                                        alt={`${signature.label} extracted signature`}
-                                        className="h-full w-full object-contain"
-                                    />
-                                ) : (
-                                    <span className="text-[7px] text-[#b0b0b0]">
-                                        No image
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="px-2 py-1 font-bold text-[#393939]">
-                            {signature.label || `Signature ${index + 1}`}
-                        </div>
-                        <div className="px-2 py-1 text-[#656565]">
-                            {signature.best_match_name ?? 'No reference match'}
-                        </div>
-                        <div className="px-2 py-1 font-mono text-[#393939]">
-                            {formatRawNumber(signature.score)}
-                        </div>
-                        <div className="px-2 py-1 font-mono text-[#393939]">
-                            {formatRawNumber(signature.distance)}
-                        </div>
-                        <div className="px-2 py-1">
-                            <SignatureVerdictBadge verdict={verdictLabel} />
-                        </div>
-                        <div className="px-2 py-1 text-[#897b7b]">
-                            {signature.message || signature.error || '-'}
-                        </div>
-                    </div>
-                );
-            })}
+        <div className="flex flex-col gap-4">
+            {verification.signatures.map((signature, index) => (
+                <SignatureResultCard
+                    key={signature.slot}
+                    signature={signature}
+                    index={index}
+                />
+            ))}
         </div>
     );
 }
 
-function SignatureVerdictBadge({ verdict }: { verdict: string }) {
-    const className =
-        verdict === 'Likely Authentic'
-            ? 'border-[#c5fdad] bg-[#e5ffd9] text-[#58983c]'
-            : verdict === 'Manual Review'
-              ? 'border-[#f0d478] bg-[#fffbea] text-[#7b5b00]'
-              : verdict === 'Invalid'
-                ? 'border-[#d3d3d3] bg-[#f9f9f9] text-[#656565]'
-                : 'border-[#fdb1b1] bg-[#f5eaea] text-[#9a0000]';
+function SignatureResultCard({
+    signature,
+    index,
+}: {
+    signature: SignatureResult;
+    index: number;
+}) {
+    const score = signature.score ?? null;
+    const signatureImageUrl = signature.ink_mask_url ?? signature.band_crop_url;
+    const isGenuine = signature.is_match || signature.verdict === 'GENUINE';
+    const needsReview = signature.verdict === 'NEEDS MANUAL REVIEW';
+    const isInvalid =
+        signature.verdict === 'INVALID' || signature.status === 'INVALID';
+    const scoreLabel = formatRawNumber(score);
+    const verdictLabel = isGenuine
+        ? 'Likely Authentic'
+        : isInvalid
+          ? 'Invalid'
+          : needsReview
+            ? 'Manual Review'
+            : 'Suspicious';
+    const cardClass = isGenuine
+        ? 'border-[#a2ffaf] bg-[#f0fff4]'
+        : isInvalid
+          ? 'border-[#d3d3d3] bg-[#f9f9f9]'
+          : needsReview
+            ? 'border-[#f0d478] bg-[#fffbea]'
+            : 'border-[#fdb1b1] bg-[#faf6f6]';
+    const verdictClass = isGenuine
+        ? 'bg-[#c7face] text-[#1b622f]'
+        : isInvalid
+          ? 'bg-[#e9e9e9] text-[#656565]'
+          : needsReview
+            ? 'bg-[#f8e7a1] text-[#7b5b00]'
+            : 'bg-[#edd] text-[#9a0000]';
+    const scoreClass = isGenuine
+        ? 'text-[#1b622f]'
+        : isInvalid
+          ? 'text-[#656565]'
+          : needsReview
+            ? 'text-[#7b5b00]'
+            : 'text-[#9a0000]';
 
     return (
-        <span
-            className={`inline-flex rounded-full border px-1 py-0.5 font-bold ${className}`}
+        <div
+            className={`flex flex-col items-center gap-3 rounded-lg border px-5 py-6 ${cardClass}`}
         >
-            {verdict}
-        </span>
+            <div className="flex h-32 w-full max-w-[226px] items-center justify-center overflow-hidden rounded bg-black">
+                {signatureImageUrl ? (
+                    <img
+                        src={signatureImageUrl}
+                        alt={`${signature.label} extracted signature`}
+                        className="h-full w-full object-contain"
+                    />
+                ) : (
+                    <span className="text-[8px] text-[#b0b0b0]">
+                        No signature image
+                    </span>
+                )}
+            </div>
+
+            <div className="flex w-full flex-col gap-2">
+                <h3 className="text-[10px] font-bold text-[#897b7b]">
+                    Extracted Signature {index + 1}
+                </h3>
+                <div className="flex items-center justify-between gap-3">
+                    <span
+                        className={`font-mono text-base font-bold ${scoreClass}`}
+                    >
+                        {scoreLabel}
+                    </span>
+                    <span className={`px-1 text-base ${verdictClass}`}>
+                        {verdictLabel}
+                    </span>
+                </div>
+                <p className="text-[8px] text-[#897b7b]">
+                    {signature.best_match_name ?? 'No reference match'}
+                    {signature.distance !== null
+                        ? ` · distance ${formatRawNumber(signature.distance)}`
+                        : ''}
+                </p>
+                {(signature.message || signature.error) && (
+                    <p className="text-[8px] text-[#9a0000]">
+                        {signature.message ?? signature.error}
+                    </p>
+                )}
+            </div>
+        </div>
     );
 }
 
-function OcrDegreePanel({
-    ocr,
-    programMatch,
-}: {
-    ocr?: OcrResult | null;
-    programMatch: AcademicProgramMatch | null;
-}) {
+function OcrDegreePanel({ ocr }: { ocr?: OcrResult | null }) {
     const degree = ocr?.degree ?? ocr?.title ?? ocr?.course ?? 'Unavailable';
-    const match = programMatch ?? ocr?.program_match ?? null;
-    const hasMatch = match?.matched === true;
-    const wasChecked = match !== null && match !== undefined;
-    const matchedProgram =
-        match && 'program_snapshot' in match
-            ? match.program_snapshot
-            : (match?.program ?? null);
+    const hasMatch = ocr?.program_match?.matched === true;
+    const wasChecked =
+        ocr?.program_match !== null && ocr?.program_match !== undefined;
     const message =
-        hasMatch && matchedProgram
-            ? `Matches ${matchedProgram.display_name}.`
+        hasMatch && ocr?.program_match?.program
+            ? `Matches ${ocr.program_match.program.display_name}.`
             : wasChecked
               ? 'Does not match any USeP Program List.'
               : (ocr?.message ?? 'Program match was not checked.');
 
     return (
-        <div className="overflow-x-auto rounded border border-[#d3d3d3] text-[8px]">
-            <div className="grid min-w-[640px] grid-cols-[minmax(180px,1.2fr)_minmax(150px,1fr)_80px_96px_minmax(160px,1fr)] bg-[#e9e9e9] text-[6px] font-bold text-[#897b7b]">
-                <div className="px-2 py-1">EXTRACTED DEGREE</div>
-                <div className="px-2 py-1">NORMALIZED DEGREE</div>
-                <div className="px-2 py-1">SCORE</div>
-                <div className="px-2 py-1">STATUS</div>
-                <div className="px-2 py-1">PROGRAM</div>
-            </div>
-            <div className="grid min-w-[640px] grid-cols-[minmax(180px,1.2fr)_minmax(150px,1fr)_80px_96px_minmax(160px,1fr)] items-center border-t border-[#d3d3d3] bg-white">
-                <div className="px-2 py-2 font-mono font-bold text-[#1e1a1a]">
+        <div className="flex flex-col gap-3 rounded border border-[#cdc9c9] bg-[#f5f5f5] p-3">
+            <div className="flex flex-col gap-1.5">
+                <span className="text-[8px] font-bold text-[#897b7b]">
+                    DEGREE/TITLE/COURSE
+                </span>
+                <span className="font-mono text-xs font-bold text-[#1e1a1a]">
                     {degree}
-                </div>
-                <div className="px-2 py-2 font-mono text-[#656565]">
-                    {match?.normalized_degree ?? '-'}
-                </div>
-                <div className="px-2 py-2 font-mono text-[#393939]">
-                    {formatRawNumber(match?.score)}
-                </div>
-                <div className="px-2 py-2">
-                    <span
-                        className={`inline-flex rounded-full border px-1 py-0.5 font-bold ${
-                            hasMatch
-                                ? 'border-[#c5fdad] bg-[#e5ffd9] text-[#58983c]'
-                                : wasChecked
-                                  ? 'border-[#fdb1b1] bg-[#f5eaea] text-[#9a0000]'
-                                  : 'border-[#d3d3d3] bg-white text-[#656565]'
-                        }`}
-                    >
-                        {hasMatch
-                            ? 'Matched'
-                            : wasChecked
-                              ? 'No match'
-                              : 'Unchecked'}
-                    </span>
-                </div>
-                <div className="px-2 py-2 text-[#897b7b]">{message}</div>
+                </span>
+            </div>
+            <div
+                className={`flex h-[22px] items-center rounded-full border px-3 text-[8px] font-bold ${
+                    hasMatch
+                        ? 'border-[#c5fdad] bg-[#e5ffd9] text-[#58983c]'
+                        : wasChecked
+                          ? 'border-[#fdb1b1] bg-[#f5eaea] text-[#9a0000]'
+                          : 'border-[#d3d3d3] bg-white text-[#656565]'
+                }`}
+            >
+                {message}
             </div>
         </div>
     );
