@@ -29,7 +29,7 @@ class TorAnalysisService
      *     authenticity_score: float,
      *     verdict: string,
      *     detected_indicators: list<string>,
-     *     gradcam_attention_map_url: string|null,
+     *     preprocessed_image_url: string|null,
      *     model_result: array<string, mixed>,
      *     preprocessing: array<string, mixed>,
      *     error: string|null
@@ -100,7 +100,7 @@ class TorAnalysisService
 
     private function modelEndpoint(): string
     {
-        return rtrim((string) config('services.tor_model.url'), '/') . '/api/images/';
+        return rtrim((string) config('services.tor_model.url'), '/').'/api/images/';
     }
 
     /**
@@ -114,7 +114,7 @@ class TorAnalysisService
      *     authenticity_score: float,
      *     verdict: string,
      *     detected_indicators: list<string>,
-     *     gradcam_attention_map_url: string|null,
+     *     preprocessed_image_url: string|null,
      *     model_result: array<string, mixed>,
      *     preprocessing: array<string, mixed>,
      *     error: string|null
@@ -131,8 +131,8 @@ class TorAnalysisService
         }
 
         $score = $this->floatValue($result, 'score');
-        $forgeryConfidence = round($score * 100, 2);
-        $authenticityScore = round(100 - $forgeryConfidence, 2);
+        $forgeryConfidence = $score * 100;
+        $authenticityScore = 100 - $forgeryConfidence;
         $label = $this->stringValue($result, 'label');
         $result = $this->withProgramMatch($result);
         $preprocessing = [
@@ -155,7 +155,7 @@ class TorAnalysisService
             'authenticity_score' => $authenticityScore,
             'verdict' => $label === 'fake' ? 'Suspicious' : 'Likely Authentic',
             'detected_indicators' => $this->detectedIndicators($result, $preprocessing),
-            'gradcam_attention_map_url' => $this->stringValue($payload, 'preprocessed_image_url') ?: null,
+            'preprocessed_image_url' => $this->stringValue($payload, 'preprocessed_image_url') ?: null,
             'model_result' => $result,
             'preprocessing' => $preprocessing,
             'error' => null,
@@ -201,13 +201,13 @@ class TorAnalysisService
         $authenticitySupport = 100 - $documentSuspiciousness;
 
         return array_values(array_filter([
-            sprintf('Document suspiciousness: %.1f%%', $documentSuspiciousness),
-            sprintf('Authenticity support: %.1f%%', $authenticitySupport),
+            sprintf('Document suspiciousness: %s%%', $this->rawNumber($documentSuspiciousness)),
+            sprintf('Authenticity support: %s%%', $this->rawNumber($authenticitySupport)),
             $this->stringValue($result, 'top_roi') !== ''
                 ? sprintf('Most suspicious region: %s', Str::headline($this->stringValue($result, 'top_roi')))
                 : null,
             $roiScores !== []
-                ? 'ROI top5 means: ' . $this->formatPercentMap($roiScores)
+                ? 'ROI top5 means: '.$this->formatPercentMap($roiScores)
                 : null,
             $this->stringValue($preprocessing, 'method') !== ''
                 ? sprintf('Preprocessing method: %s', $this->stringValue($preprocessing, 'method'))
@@ -216,7 +216,7 @@ class TorAnalysisService
                 ? sprintf('Skew status: %s', $this->stringValue($preprocessing, 'skew_status'))
                 : null,
             $patchCounts !== []
-                ? 'Patch counts: ' . $this->formatCountMap($patchCounts)
+                ? 'Patch counts: '.$this->formatCountMap($patchCounts)
                 : null,
         ]));
     }
@@ -227,7 +227,7 @@ class TorAnalysisService
     private function formatPercentMap(array $values): string
     {
         return collect($values)
-            ->map(fn(mixed $value, string $key): string => sprintf('%s %.1f%%', Str::headline($key), $this->roiScoreValue($value) * 100))
+            ->map(fn (mixed $value, string $key): string => sprintf('%s %s%%', Str::headline($key), $this->rawNumber($this->roiScoreValue($value) * 100)))
             ->implode(', ');
     }
 
@@ -237,7 +237,7 @@ class TorAnalysisService
     private function formatCountMap(array $values): string
     {
         return collect($values)
-            ->map(fn(mixed $value, string $key): string => sprintf('%s %d', Str::headline($key), (int) $this->numericValue($value)))
+            ->map(fn (mixed $value, string $key): string => sprintf('%s %d', Str::headline($key), (int) $this->numericValue($value)))
             ->implode(', ');
     }
 
@@ -281,6 +281,11 @@ class TorAnalysisService
     private function numericValue(mixed $value): float
     {
         return is_numeric($value) ? (float) $value : 0.0;
+    }
+
+    private function rawNumber(float $value): string
+    {
+        return (string) $value;
     }
 
     private function roiScoreValue(mixed $value): float

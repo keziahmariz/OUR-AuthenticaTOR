@@ -31,6 +31,7 @@ class AcademicProgramMatcher
             return [
                 'matched' => false,
                 'normalized_degree' => $normalizedDegree,
+                'score' => 0.0,
                 'program' => null,
             ];
         }
@@ -38,6 +39,7 @@ class AcademicProgramMatcher
         return [
             'matched' => true,
             'normalized_degree' => $normalizedDegree,
+            'score' => 1.0,
             'program' => [
                 'id' => $program->id,
                 'campus' => $program->campus,

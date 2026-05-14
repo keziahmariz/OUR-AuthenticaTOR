@@ -52,7 +52,7 @@ test('upload tor page exposes a laravel proxy url for the latest preprocessed im
         'authenticity_score' => 6.7,
         'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
-        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'preprocessed_image_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
         'preprocessing' => ['method' => 'brightness'],
     ]);
@@ -82,7 +82,7 @@ test('upload tor page exposes signature verification with proxied artifact urls'
         'authenticity_score' => 6.7,
         'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
-        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'preprocessed_image_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => [
             'label' => 'fake',
             'score' => 0.933,
@@ -102,6 +102,7 @@ test('upload tor page exposes signature verification with proxied artifact urls'
                 ->where('latestAnalysis.model_result.degree_extraction.degree', 'Bachelor of Science in Information Technology')
                 ->where('latestAnalysis.signature_verification.success', true)
                 ->where('latestAnalysis.signature_verification.signatures.0.best_match_name', 'Judito T. Abadia')
+                ->where('latestAnalysis.signature_results.0.best_match_name', 'Judito T. Abadia')
                 ->where(
                     'latestAnalysis.signature_verification.signatures.0.band_crop_url',
                     route('uploadTor.signatureArtifact', [
@@ -130,7 +131,7 @@ test('upload tor page refreshes stored OCR program matches from active programs'
         'authenticity_score' => 87.7,
         'verdict' => 'Likely Authentic',
         'detected_indicators' => ['Document suspiciousness: 12.3%'],
-        'gradcam_attention_map_url' => null,
+        'preprocessed_image_url' => null,
         'model_result' => [
             'label' => 'real',
             'score' => 0.123,
@@ -157,6 +158,8 @@ test('upload tor page refreshes stored OCR program matches from active programs'
                 ->component('upload-tor')
                 ->where('latestAnalysis.id', $analysis->id)
                 ->where('latestAnalysis.model_result.degree_extraction.program_match.matched', true)
+                ->where('latestAnalysis.academic_program_match.matched', true)
+                ->where('latestAnalysis.academic_program_match.program_snapshot.degree', 'Master of Science in Biology')
                 ->where('latestAnalysis.model_result.degree_extraction.program_match.program.degree', 'Master of Science in Biology'),
         );
 });
@@ -178,7 +181,7 @@ test('authenticated users can view their proxied preprocessed image', function (
         'authenticity_score' => 6.7,
         'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
-        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'preprocessed_image_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
         'preprocessing' => ['method' => 'brightness'],
     ]);
@@ -203,7 +206,7 @@ test('authenticated users cannot view another users preprocessed image', functio
         'authenticity_score' => 6.7,
         'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
-        'gradcam_attention_map_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
+        'preprocessed_image_url' => 'http://127.0.0.1:8001/media/preprocessed/tor.jpg',
         'model_result' => ['label' => 'fake', 'score' => 0.933],
         'preprocessing' => ['method' => 'brightness'],
     ]);
@@ -230,7 +233,7 @@ test('authenticated users can view their proxied signature artifact', function (
         'authenticity_score' => 6.7,
         'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
-        'gradcam_attention_map_url' => null,
+        'preprocessed_image_url' => null,
         'model_result' => [
             'signature_verification' => signatureVerificationPayload(),
         ],
@@ -259,7 +262,7 @@ test('authenticated users cannot view unlisted signature artifact urls', functio
         'authenticity_score' => 6.7,
         'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
-        'gradcam_attention_map_url' => null,
+        'preprocessed_image_url' => null,
         'model_result' => [
             'signature_verification' => signatureVerificationPayload(),
         ],
@@ -287,7 +290,7 @@ test('authenticated users cannot view another users signature artifact', functio
         'authenticity_score' => 6.7,
         'verdict' => 'Suspicious',
         'detected_indicators' => ['Document suspiciousness: 93.3%'],
-        'gradcam_attention_map_url' => null,
+        'preprocessed_image_url' => null,
         'model_result' => [
             'signature_verification' => signatureVerificationPayload(),
         ],
@@ -375,7 +378,7 @@ test('authenticated users can analyze a valid tor image', function () {
         ->authenticity_score->toBe(6.7)
         ->verdict->toBe('Suspicious')
         ->detected_indicators->toHaveCount(7)
-        ->gradcam_attention_map_url->toBe('http://127.0.0.1:8001/media/preprocessed/tor.jpg')
+        ->preprocessed_image_url->toBe('http://127.0.0.1:8001/media/preprocessed/tor.jpg')
         ->model_result->toMatchArray(['label' => 'fake', 'score' => 0.933])
         ->preprocessing->toMatchArray(['method' => 'brightness', 'skew_status' => 'flat']);
 
@@ -387,6 +390,16 @@ test('authenticated users can analyze a valid tor image', function () {
     expect($analysis->model_result['degree_extraction']['program_match']['matched'])->toBeTrue();
     expect($analysis->model_result['degree_extraction']['program_match']['program']['degree'])->toBe('Bachelor of Science in Information Technology');
     expect($analysis->model_result['signature_verification']['success'])->toBeTrue();
+    expect($analysis->signatureResults()->count())->toBe(1);
+    expect($analysis->signatureResults()->first())
+        ->slot->toBe('sig1_prepared_by')
+        ->score->toBe(0.62)
+        ->distance->toBe(0.42)
+        ->best_match_name->toBe('Judito T. Abadia');
+    expect($analysis->programMatch)
+        ->matched->toBeTrue()
+        ->score->toBe(1.0);
+    expect($analysis->programMatch->program_snapshot['degree'])->toBe('Bachelor of Science in Information Technology');
 
     expect(Storage::disk('local')->allFiles('tor-analysis/tmp'))->toBe([]);
 

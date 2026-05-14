@@ -11,6 +11,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -29,6 +30,7 @@ class UploadTorController extends Controller
     {
         $latestAnalysis = TorAnalysisResult::query()
             ->whereBelongsTo($request->user())
+            ->with(['signatureResults', 'programMatch'])
             ->latest()
             ->first();
 
@@ -62,10 +64,24 @@ class UploadTorController extends Controller
                 ]);
             }
 
-            TorAnalysisResult::query()->create([
-                'user_id' => $request->user()->id,
-                ...$analysis,
-            ]);
+            DB::transaction(function () use ($analysis, $request): void {
+                $torAnalysisResult = TorAnalysisResult::query()->create([
+                    'user_id' => $request->user()->id,
+                    ...$analysis,
+                ]);
+
+                $signatureRows = $this->signatureResultRowsFrom($analysis['model_result'] ?? []);
+
+                if ($signatureRows !== []) {
+                    $torAnalysisResult->signatureResults()->createMany($signatureRows);
+                }
+
+                $programMatchRow = $this->programMatchRowFrom($analysis['model_result'] ?? []);
+
+                if ($programMatchRow !== null) {
+                    $torAnalysisResult->programMatch()->create($programMatchRow);
+                }
+            });
         } finally {
             Storage::delete($storedPath);
         }
@@ -81,9 +97,9 @@ class UploadTorController extends Controller
     public function preprocessedImage(Request $request, TorAnalysisResult $torAnalysisResult): HttpResponse
     {
         abort_unless($torAnalysisResult->user_id === $request->user()->id, 404);
-        abort_if($torAnalysisResult->gradcam_attention_map_url === null, 404);
+        abort_if($torAnalysisResult->preprocessed_image_url === null, 404);
 
-        return $this->proxyModelImage($torAnalysisResult->gradcam_attention_map_url);
+        return $this->proxyModelImage($torAnalysisResult->preprocessed_image_url);
     }
 
     /**
@@ -109,10 +125,12 @@ class UploadTorController extends Controller
         return [
             ...$analysis->toArray(),
             'model_result' => $modelResult,
-            'preprocessed_image_url' => $analysis->gradcam_attention_map_url === null
+            'preprocessed_image_url' => $analysis->preprocessed_image_url === null
                 ? null
                 : route('uploadTor.preprocessedImage', $analysis),
             'signature_verification' => $this->signatureVerificationFor($analysis),
+            'signature_results' => $this->signatureResultsFor($analysis),
+            'academic_program_match' => $this->programMatchFor($analysis, $modelResult),
         ];
     }
 
@@ -207,6 +225,43 @@ class UploadTorController extends Controller
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    private function signatureResultsFor(TorAnalysisResult $analysis): array
+    {
+        if ($analysis->relationLoaded('signatureResults') && $analysis->signatureResults->isNotEmpty()) {
+            return $analysis->signatureResults
+                ->map(fn ($signature): array => $this->proxySignatureArtifactUrls($analysis, $signature->toArray()))
+                ->values()
+                ->all();
+        }
+
+        $signatureVerification = $this->signatureVerificationFor($analysis);
+        $signatures = $signatureVerification['signatures'] ?? [];
+
+        return is_array($signatures)
+            ? collect($signatures)->filter(fn (mixed $signature): bool => is_array($signature))->values()->all()
+            : [];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $modelResult
+     * @return array<string, mixed>|null
+     */
+    private function programMatchFor(TorAnalysisResult $analysis, ?array $modelResult): ?array
+    {
+        if ($analysis->relationLoaded('programMatch') && $analysis->programMatch !== null) {
+            return $analysis->programMatch->toArray();
+        }
+
+        if ($modelResult === null) {
+            return null;
+        }
+
+        return $this->programMatchRowFrom($modelResult);
+    }
+
+    /**
      * @param  array<string, mixed>  $signature
      * @return array<string, mixed>
      */
@@ -252,6 +307,87 @@ class UploadTorController extends Controller
         return $allowedUrls->contains($url);
     }
 
+    /**
+     * @param  array<string, mixed>  $modelResult
+     * @return list<array<string, mixed>>
+     */
+    private function signatureResultRowsFrom(array $modelResult): array
+    {
+        $signatureVerification = $this->arrayValue($modelResult, 'signature_verification');
+        $signatures = $this->arrayValue($signatureVerification, 'signatures');
+
+        return collect($signatures)
+            ->filter(fn (mixed $signature): bool => is_array($signature))
+            ->map(function (array $signature, int $index): array {
+                $presence = $this->arrayValue($signature, 'presence');
+
+                return [
+                    'slot' => $this->stringValue($signature, 'slot') ?: "signature_{$index}",
+                    'label' => $this->nullableStringValue($signature, 'label'),
+                    'best_match_id' => $this->nullableStringValue($signature, 'best_match_id'),
+                    'best_match_name' => $this->nullableStringValue($signature, 'best_match_name'),
+                    'distance' => $this->nullableNumericValue($signature, 'distance'),
+                    'score' => $this->nullableNumericValue($signature, 'score'),
+                    'verdict' => $this->nullableStringValue($signature, 'verdict'),
+                    'status' => $this->nullableStringValue($signature, 'status'),
+                    'is_match' => ($signature['is_match'] ?? false) === true,
+                    'signature_detected' => $this->nullableBoolValue($signature, 'signature_detected'),
+                    'model_inference_ran' => $this->nullableBoolValue($signature, 'model_inference_ran'),
+                    'ink_pixels' => $this->nullableIntValue($signature, 'ink_pixels') ?? $this->nullableIntValue($presence, 'ink_pixels'),
+                    'ink_ratio' => $this->nullableNumericValue($presence, 'ink_ratio'),
+                    'max_component_area' => $this->nullableIntValue($presence, 'max_component_area'),
+                    'signature_like_components' => $this->nullableIntValue($presence, 'signature_like_components'),
+                    'bbox_xywh' => $this->arrayValue($signature, 'bbox_xywh') ?: null,
+                    'band_crop_url' => $this->nullableStringValue($signature, 'band_crop_url'),
+                    'ink_mask_url' => $this->nullableStringValue($signature, 'ink_mask_url'),
+                    'debug_image_url' => $this->nullableStringValue($signature, 'debug_image_url'),
+                    'message' => $this->nullableStringValue($signature, 'message'),
+                    'error' => $this->nullableStringValue($signature, 'error'),
+                    'raw_result' => $signature,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $modelResult
+     * @return array<string, mixed>|null
+     */
+    private function programMatchRowFrom(array $modelResult): ?array
+    {
+        $degreeExtraction = $this->arrayValue($modelResult, 'degree_extraction');
+
+        if ($degreeExtraction === []) {
+            $degreeExtraction = $this->arrayValue($modelResult, 'ocr');
+        }
+
+        if ($degreeExtraction === []) {
+            return null;
+        }
+
+        $programMatch = $this->arrayValue($degreeExtraction, 'program_match');
+
+        if ($programMatch === []) {
+            return null;
+        }
+
+        $program = $this->arrayValue($programMatch, 'program');
+
+        return [
+            'academic_program_id' => $this->nullableIntValue($program, 'id'),
+            'extracted_degree' => $this->stringValue($degreeExtraction, 'degree')
+                ?: $this->stringValue($degreeExtraction, 'course')
+                ?: $this->stringValue($degreeExtraction, 'title')
+                ?: null,
+            'normalized_degree' => $this->nullableStringValue($programMatch, 'normalized_degree'),
+            'matched' => ($programMatch['matched'] ?? false) === true,
+            'score' => $this->nullableNumericValue($programMatch, 'score'),
+            'program_snapshot' => $program === [] ? null : $program,
+            'raw_match' => $programMatch,
+        ];
+    }
+
     private function proxyModelImage(string $url): HttpResponse
     {
         try {
@@ -266,6 +402,57 @@ class UploadTorController extends Controller
         return response($response->body(), 200)
             ->header('Content-Type', $response->header('Content-Type') ?: 'image/jpeg')
             ->header('Cache-Control', 'private, max-age=300');
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private function arrayValue(array $values, string $key): array
+    {
+        $value = $values[$key] ?? [];
+
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    private function nullableBoolValue(array $values, string $key): ?bool
+    {
+        $value = $values[$key] ?? null;
+
+        return is_bool($value) ? $value : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    private function nullableIntValue(array $values, string $key): ?int
+    {
+        $value = $values[$key] ?? null;
+
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    private function nullableNumericValue(array $values, string $key): ?float
+    {
+        $value = $values[$key] ?? null;
+
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    private function nullableStringValue(array $values, string $key): ?string
+    {
+        $value = $values[$key] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**

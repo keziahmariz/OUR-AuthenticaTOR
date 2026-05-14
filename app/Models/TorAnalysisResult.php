@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'user_id',
@@ -16,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'authenticity_score',
     'verdict',
     'detected_indicators',
-    'gradcam_attention_map_url',
+    'preprocessed_image_url',
     'model_result',
     'preprocessing',
     'error',
@@ -47,5 +49,25 @@ class TorAnalysisResult extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the normalized signature results for this analysis.
+     *
+     * @return HasMany<TorAnalysisSignatureResult, $this>
+     */
+    public function signatureResults(): HasMany
+    {
+        return $this->hasMany(TorAnalysisSignatureResult::class);
+    }
+
+    /**
+     * Get the normalized academic program match for this analysis.
+     *
+     * @return HasOne<TorAnalysisProgramMatch, $this>
+     */
+    public function programMatch(): HasOne
+    {
+        return $this->hasOne(TorAnalysisProgramMatch::class);
     }
 }
